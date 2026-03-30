@@ -1,0 +1,223 @@
+/* File: frontend/styles/landing.css */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: #333;
+}
+
+.landing-container {
+    background-color: #ffffff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.landing-header h1 {
+    margin-top: 0;
+    color: #0056b3;
+    font-size: 2rem;
+}
+
+.landing-main .subtitle {
+    font-size: 1.25rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+}
+
+.landing-main .description {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 2.5rem;
+}
+
+.cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.cta-buttons .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.cta-buttons .btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #e9e9eb;
+    color: #333;
+    border: 1px solid #ddd;
+}
+.btn-secondary:hover {
+    background-color: #dcdcdc;
+}
+
+.landing-footer {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #999;
+}
+
+
+/* --- 10. STYLE UNTUK CHAT WIDGET --- */
+
+#chat-widget-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+/* Tombol Bubble */
+#chat-toggle-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+#chat-toggle-button:hover {
+    transform: scale(1.1);
+}
+#chat-toggle-button img {
+    width: 30px;
+    height: 30px;
+    /* filter: invert(1); */ 
+}
+
+/* Jendela Chat */
+#chat-widget {
+    width: 350px;
+    height: 500px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: absolute;
+    bottom: 90px; /* Jarak dari atas bubble */
+    right: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Status Sembunyi */
+#chat-widget.hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none; /* Tidak bisa diklik saat sembunyi */
+}
+
+.chat-widget-header {
+    background-color: #007bff;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chat-widget-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+#chat-close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    margin: 0;
+    padding: 0 5px;
+}
+
+#chat-widget-messages {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+}
+
+/* Style Pesan (copy dari main.css tapi tanpa class .message) */
+#chat-widget-messages .bot-message,
+#chat-widget-messages .user-message {
+    margin-bottom: 12px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    line-height: 1.4;
+    max-width: 80%;
+}
+#chat-widget-messages .bot-message {
+    background-color: #e9e9eb;
+    color: #333;
+    border-bottom-left-radius: 5px;
+}
+#chat-widget-messages .user-message {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 5px;
+    display: block;
+    width: fit-content;
+}
+#chat-widget-messages .loading {
+    font-style: italic; color: #555;
+}
+
+
+.chat-widget-input {
+    display: flex;
+    border-top: 1px solid #ddd;
+    padding: 10px;
+}
+#chat-widget-user-input {
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    margin-right: 10px;
+}
+#chat-widget-send-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0 15px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 0;
+}

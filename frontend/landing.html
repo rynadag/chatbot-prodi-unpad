@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selamat Datang di Chatbot Prodi</title>
+    <link rel="stylesheet" href="styles/landing.css">
+</head>
+<body>
+    <div class="landing-container">
+        <header class="landing-header">
+            <h1>Selamat Datang di Chatbot Prodi Magister Ilmu Manajemen</h1>
+        </header>
+
+        <main class="landing-main">
+             <div class="cta-buttons">
+                <a href="login.html" class="btn btn-primary">Login</a>
+                <a href="register.html" class="btn btn-secondary">Daftar Akun Baru</a>
+            </div>
+        </main>
+
+        <footer class="landing-footer">
+            <p>&copy; 2025 Program Studi</p>
+        </footer>
+    </div>
+
+    <div id="chat-widget-container">
+        <button id="chat-toggle-button">
+            <img src="images/logo-chatbot.png" alt="Chat" class="chat-btn-img"> 
+        </button>
+
+        <div id="chat-widget" class="hidden">
+            <div class="chat-widget-header">
+                <h3>Chatbot Prodi</h3>
+                <button id="chat-close-button">&times;</button>
+            </div>
+            <div id="chat-widget-messages">
+                <div class="message bot-message">Halo! Ada yang bisa saya bantu?</div>
+            </div>
+            <div class="chat-widget-input">
+                <input type="text" id="chat-widget-user-input" placeholder="Ketik pesan...">
+                <button id="chat-widget-send-button">Kirim</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="landing.js"></script>
+</body>
+</html>

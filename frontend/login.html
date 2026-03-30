@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Chatbot</title>
+    <link rel="stylesheet" href="styles/login.css"> 
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login Akun</h2>
+        <p>Silakan masuk untuk melanjutkan</p>
+        
+        <div id="login-form">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="contoh@email.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Password Anda" required>
+            </div>
+            
+            <button id="login-button">Login</button>
+            
+            <p id="error-message" class="error-message"></p>
+        </div>
+        
+        <p class="register-link">
+            Belum punya akun? <a href="/register.html">Daftar di sini</a>
+            </p>
+    </div>
+
+    <script src="login.js"></script> 
+</body>
+</html>

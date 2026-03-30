@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script>
+        const token = localStorage.getItem('userToken');
+        if (!token) {
+            alert('Anda harus login untuk mengakses chatbot.');
+            window.location.href = 'login.html';
+        }
+    </script>
+    
+    <title>Chatbot Prodi</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <img src="images/logo-unpad.png" alt="Logo Unpad" class="logo-img">
+                    <h3>Aplikasi Chatbot</h3>
+                <p>Magister Ilmu Manajemen</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-target="section-chatbot">Chatbot</a>
+                <a href="#" class="nav-link" data-target="section-submit">Kirim Dataset</a>
+                <a href="#" class="nav-link" data-target="section-history">Histori Saya</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            
+            <header class="main-header">
+                <h1>Selamat Datang!</h1>
+                <button id="logout-button" class="btn-danger">Logout</button>
+            </header>
+
+            <div class="content-area">
+
+                <div id="section-chatbot" class="section active">
+                    <h2>Chatbot</h2>
+                    <div class="chat-window">
+                        <div id="chat-messages" class="chat-messages">
+                            <div class="message bot-message">
+                                Halo! Silakan ajukan pertanyaan Anda.
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="user-input" placeholder="Ketik pesan Anda...">
+                            <button id="send-button" class="btn-primary">Kirim</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="section-submit" class="section">
+                    <h2>Bantu Kami Belajar! (Kirim Dataset)</h2>
+                    <p>Jika Anda tahu jawaban untuk data yang belum ada, silakan kirim di sini.</p>
+                    <div id="submission-form">
+                        <label for="sub-tag">Tag / Topik Pertanyaan</label>
+                        <input type="text" id="sub-tag" placeholder="Contoh: 'info_ukt_2025'">
+                        
+                        <label for="sub-content">Konten Lengkap</label>
+                        <textarea id="sub-content" rows="4" placeholder="Masukkan jawaban lengkapnya..."></textarea>
+                        
+                        <button id="submit-data-button" class="btn-primary">Kirim Saran</button>
+                        <div id="submit-message" class="message"></div>
+                    </div>
+                </div>
+                
+                <div id="section-history" class="section">
+                    <h2>Histori Kiriman Saya</h2>
+                    <p>Lihat status data yang pernah Anda kirim.</p>
+                    <button id="load-my-submissions-button" class="btn-primary">Muat Ulang Histori</button>
+                    <div id="my-submissions-message" class="message"></div>
+                    <div id="my-submissions-list">
+                        </div>
+                </div>
+
+            </div> </main> </div> <script src="script.js"></script>
+</body>
+</html>

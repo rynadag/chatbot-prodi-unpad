@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        const token = localStorage.getItem('userToken');
+        const role = localStorage.getItem('userRole');
+        if (!token || role !== 'admin') {
+            alert('Akses ditolak. Silakan login sebagai admin.');
+            window.location.href = 'login.html';
+        }
+    </script>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="styles/admin.css">
+</head>
+<body>
+    
+    <div class="dashboard-container">
+        
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <img src="images/logo-unpad.png" alt="Logo Unpad" class="logo-img">
+                <h3>Aplikasi Chatbot</h3>
+                <p>Magister Ilmu Manajemen</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-target="section-list">Dataset</a>
+                <a href="#" class="nav-link" data-target="section-verify">Data Set From User</a>
+                <a href="#" class="nav-link" data-target="section-add">Tambah Data</a>
+                <a href="#" class="nav-link" data-target="section-chatbot">Coba Chatbot</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            
+            <header class="main-header">
+                <h1>Dashboard Admin</h1>
+                <div class="header-actions">
+                    <button id="import-button-header" class="btn-primary" onclick="openImportModal()">Import JSON</button>
+                    <button id="compile-button-header" class="btn-success">Compile</button>
+                    <button id="logout-button" class="btn-danger">Logout</button>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div id="section-list" class="section active">
+                    <h2>Dataset Aktif</h2>
+                    <p>Dataset yang saat ini digunakan oleh chatbot.</p>
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Cari data berdasarkan tag atau konten...">
+                    </div>
+                    <button class="btn-primary" onclick="loadData()">Muat Ulang Data</button>
+                    <div id="load-message" class="message"></div>
+                    <div id="data-list"></div>
+                </div>
+                
+                <div id="section-verify" class="section">
+                    <h2>Verifikasi Kiriman User (Data Set From User)</h2>
+                    <p>Tinjau data yang dikirim oleh user.</p>
+                    <button class="btn-primary" id="load-submissions-button">Muat Kiriman User</button>
+                    <div id="submission-message" class="message"></div>
+                    <div id="submission-list"></div>
+                </div>
+                
+                <div id="section-add" class="section">
+                    <h2>Tambah Dataset Baru</h2>
+                    <div id="add-form">
+                        <label for="tag">Tag Data</label>
+                        <input type="text" id="tag" placeholder="Masukkan tag unik" required>
+                        <label for="content">Isi Konten</label>
+                        <textarea id="content" rows="5" placeholder="Masukkan konten teks di sini..." required></textarea>
+                        <button class="btn-primary" onclick="addData()">Tambah Data</button>
+                        <div id="add-message" class="message"></div>
+                    </div>
+                </div>
+
+                <div id="section-chatbot" class="section">
+                    <h2>Coba Chatbot (Admin View)</h2>
+                    <div class="chat-window">
+                        <div id="admin-chat-messages" class="chat-messages">
+                            <div class="message bot-message">
+                                Halo Admin! Silakan tes chatbot di sini.
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="admin-user-input" placeholder="Ketik pesan Anda...">
+                            <button id="admin-send-button" class="btn-primary">Kirim</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="compile-message-global" class="message-global"></div>
+
+            </div> </main> </div> <script src="app.js"></script>
+
+    <div id="edit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close-btn" onclick="closeEditModal()">&times;</span>
+            <h2>Edit Dataset</h2>
+            <input type="hidden" id="edit-id">
+            <label for="edit-tag">Tag Data</label>
+            <input type="text" id="edit-tag" placeholder="Tag data">
+            <label for="edit-content">Isi Konten</label>
+            <textarea id="edit-content" rows="8" placeholder="Konten lengkap dataset..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="saveEdit()">Simpan Perubahan</button>
+                <button class="btn-secondary" onclick="closeEditModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="import-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close-btn" onclick="closeImportModal()">&times;</span>
+            <h2>Import Dataset dari JSON</h2>
+            
+            <p>Pilih file `.json` untuk di-upload. Format JSON harus berupa array `[{"tag": "...", "content_text": "..."}, ...]`</p>
+            
+            <label for="import-file-input">Pilih File JSON (.json)</label>
+            <input type="file" id="import-file-input" accept=".json">
+            
+            <div id="import-message" class="message"></div>
+            
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="uploadFile()">Upload dan Import</button>
+                <button class="btn-secondary" onclick="closeImportModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html>
