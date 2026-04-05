@@ -30,14 +30,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function renderMarkdown(text) {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*(.*?)\*/g, "<em>$1</em>")
+            .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+            .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+            .replace(/^- (.+)$/gm, "<li>$1</li>")
+            .replace(/\n/g, "<br>");
+    }
+
     function addMessage(sender, text) {
         const messageDiv = document.createElement('div');
-        // Gunakan nama kelas yang spesifik
         messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
-        const formattedText = text.replace(/\n/g, '<br>');
-        messageDiv.innerHTML = formattedText;
+        messageDiv.innerHTML = sender === 'bot' ? renderMarkdown(text) : text;
         messagesContainer.appendChild(messageDiv);
-        // Selalu scroll ke pesan terbaru
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
