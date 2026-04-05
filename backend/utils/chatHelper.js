@@ -72,6 +72,13 @@ export async function processQuestion(question) {
         new StringOutputParser(),
     ]);
 
-    const answer = await chain.invoke({ question });
+    const raw = await chain.invoke({ question });
+
+    const answer = raw
+        .replace(/\n*Dengan demikian,.*/s, "")
+        .replace(/\n*Jadi,.*/s, "")
+        .replace(/\n*Kesimpulannya,.*/s, "")
+        .trim();
+
     return answer;
 }
