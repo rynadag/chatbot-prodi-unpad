@@ -17,8 +17,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: "1mb" }));
 app.use(cors());
 
-// Daftarkan semua routes SEBELUM koneksi DB — express tetap berjalan,
-// request akan menunggu DB siap via getVectorStore/singleton.
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
