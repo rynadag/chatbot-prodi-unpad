@@ -1,14 +1,11 @@
 /**
- * Chatbot Prodi Unpad — Frontend JS v3.0
+ * Chatbot Prodi Unpad — Frontend JS v3.1
  *
- * Key improvements:
- *  - Uses WP REST API (/wp-json/cunpad/v1/) instead of admin-ajax.php
- *  - Real-time streaming via SSE proxy → tokens appear word-by-word
- *  - Retry-once on transient network errors
- *  - Rate-limit feedback (429 response)
- *  - Markdown renderer (bold, italic, lists, headings, code)
- *  - Session token stored in sessionStorage (cleared on tab close)
- *  - Accessibility: aria-live region on message container
+ * Fixes v3.1:
+ *  - Null-safety di wireChatInput (cegah TypeError jika elemen tidak ditemukan)
+ *  - Guard di initPublic / initFloat / initFull jika elemen DOM tidak ada
+ *  - DOMContentLoaded fallback: jika sudah fired, langsung jalankan init
+ *  - sendStreaming: tangani kasus sendBtn/inputEl null agar tidak crash
  */
 
 (function () {
@@ -18,17 +15,22 @@
     const cfg  = window.cunpadConfig || {};
     const REST = cfg.restUrl  || '/wp-json/cunpad/v1/';
     const AJAX = cfg.ajaxUrl  || '/wp-admin/admin-ajax.php';
-    const NONCE_REST = cfg.nonce      || '';   // X-WP-Nonce
+    const NONCE_REST = cfg.nonce      || '';
     const NONCE_AJAX = cfg.ajaxNonce  || '';
 
     /* ── REST helper ─────────────────────────────────────── */
+    // FIX: jangan kirim X-WP-Nonce kalau kosong — WordPress akan balas 403
+    // jika header ini ada tapi nilainya invalid/kosong.
+    function buildHeaders() {
+        const h = { 'Content-Type': 'application/json' };
+        if (NONCE_REST) h['X-WP-Nonce'] = NONCE_REST;
+        return h;
+    }
+
     async function restPost(endpoint, body) {
         const res = await fetch(REST + endpoint, {
             method:  'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce':   NONCE_REST,
-            },
+            headers: buildHeaders(),
             body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
@@ -38,9 +40,9 @@
     async function restGet(endpoint, params = {}) {
         const qs  = new URLSearchParams(params).toString();
         const url = REST + endpoint + (qs ? '?' + qs : '');
-        const res = await fetch(url, {
-            headers: { 'X-WP-Nonce': NONCE_REST },
-        });
+        const h   = {};
+        if (NONCE_REST) h['X-WP-Nonce'] = NONCE_REST;
+        const res = await fetch(url, { headers: h });
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, status: res.status, data };
     }
@@ -55,24 +57,16 @@
     /* ── Markdown renderer ───────────────────────────────── */
     function md(text) {
         if (!text) return '';
-        // Escape HTML first
         let s = text
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // Code blocks (`code`)
         s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-        // Bold (**text**)
         s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        // Italic (*text*)
         s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-        // Headings
         s = s.replace(/^### (.+)$/gm, '<h4 class="cunpad-md-h">$1</h4>');
         s = s.replace(/^## (.+)$/gm,  '<h3 class="cunpad-md-h">$1</h3>');
-        // Unordered list items → wrap in ul later
         s = s.replace(/^- (.+)$/gm, '<li>$1</li>');
-        // Wrap consecutive <li> in <ul>
         s = s.replace(/(<li>.*?<\/li>(\n|$))+/gs, m => '<ul>' + m.replace(/\n$/, '') + '</ul>');
-        // Newlines → <br> (outside block elements)
         s = s.replace(/\n/g, '<br>');
 
         return s;
@@ -80,6 +74,7 @@
 
     /* ── DOM helper: append message bubble ───────────────── */
     function appendMsg(container, role, content, isHtml = false) {
+        if (!container) return null; // FIX: null-guard
         const div = document.createElement('div');
         div.className = 'cunpad-msg-bubble ' + (role === 'user' ? 'cunpad-user' : 'cunpad-bot');
         if (isHtml) div.innerHTML = content;
@@ -91,18 +86,25 @@
 
     /* ── Status message helper ───────────────────────────── */
     function setStatus(el, text, type) {
+        if (!el) return; // FIX: null-guard
         el.textContent = text;
         el.className   = 'cunpad-msg' + (type ? ' cunpad-' + type : '');
     }
 
     /* ── SSE streaming send ───────────────────────────────── */
     async function sendStreaming({ question, token, messagesEl, sendBtn, inputEl }) {
+        // FIX: null-guard semua elemen
+        if (!messagesEl || !sendBtn || !inputEl) {
+            console.error('[cunpad] sendStreaming: elemen tidak ditemukan');
+            return;
+        }
+
         appendMsg(messagesEl, 'user', question);
         inputEl.value = '';
         sendBtn.disabled = true;
 
-        // Bot bubble (will be filled token-by-token)
         const botBubble = appendMsg(messagesEl, 'bot', '', false);
+        if (!botBubble) { sendBtn.disabled = false; return; }
         botBubble.classList.add('cunpad-streaming');
         botBubble.innerHTML = '<span class="cunpad-cursor">▍</span>';
 
@@ -114,10 +116,7 @@
 
             const res = await fetch(REST + 'stream', {
                 method:  'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce':   NONCE_REST,
-                },
+                headers: buildHeaders(),
                 body: JSON.stringify(body),
             });
 
@@ -138,7 +137,7 @@
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
-                buffer = lines.pop(); // keep incomplete line
+                buffer = lines.pop();
 
                 for (const line of lines) {
                     if (!line.startsWith('data: ')) continue;
@@ -150,7 +149,6 @@
 
                     if (evt.token) {
                         rawText += evt.token;
-                        // Render markdown on accumulated text
                         botBubble.innerHTML = md(rawText) + '<span class="cunpad-cursor">▍</span>';
                         messagesEl.scrollTop = messagesEl.scrollHeight;
                     }
@@ -166,7 +164,6 @@
                 }
             }
 
-            // Final render without cursor
             if (rawText) {
                 botBubble.innerHTML = md(rawText);
             }
@@ -178,7 +175,6 @@
             if (err.message === 'UNAUTHORIZED') {
                 Token.clear();
                 botBubble.textContent = '⚠️ Sesi habis. Silakan login kembali.';
-                // Trigger re-show of login overlay
                 document.getElementById('cunpad-auth-overlay')?.removeAttribute('style');
                 document.getElementById('cunpad-header')?.setAttribute('style', 'display:none');
                 document.getElementById('cunpad-content-area')?.setAttribute('style', 'display:none');
@@ -186,15 +182,23 @@
                 botBubble.textContent = '❌ ' + (err.message || 'Terjadi kesalahan. Coba lagi.');
             }
         } finally {
-            sendBtn.disabled = false;
-            inputEl.focus();
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            // FIX: selalu re-enable tombol meski elemen berubah
+            if (sendBtn) sendBtn.disabled = false;
+            if (inputEl) inputEl.focus();
+            if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
         }
     }
 
     /* ── Wire up a chat input pair ───────────────────────── */
     function wireChatInput({ inputEl, sendBtn, messagesEl, tokenFn }) {
-        // Initial greeting
+        // FIX: validasi semua elemen sebelum melanjutkan
+        if (!inputEl || !sendBtn || !messagesEl) {
+            console.error('[cunpad] wireChatInput: elemen tidak ditemukan', {
+                inputEl, sendBtn, messagesEl,
+            });
+            return;
+        }
+
         appendMsg(messagesEl, 'bot', 'Halo! Silakan ajukan pertanyaan Anda seputar Program Studi MIM FEB Unpad.');
 
         const send = () => {
@@ -208,7 +212,9 @@
         };
 
         sendBtn.addEventListener('click', send);
-        inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+        inputEl.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+        });
     }
 
     // ═══════════════════════════════════════════════════════
@@ -216,7 +222,10 @@
     // ═══════════════════════════════════════════════════════
     function initPublic() {
         const root = document.getElementById('cunpad-public');
-        if (!root) return;
+        if (!root) {
+            console.error('[cunpad] initPublic: #cunpad-public tidak ditemukan');
+            return;
+        }
 
         wireChatInput({
             inputEl:    document.getElementById('cunpad-pub-input'),
@@ -231,12 +240,22 @@
     // ═══════════════════════════════════════════════════════
     function initFloat() {
         const root = document.getElementById('cunpad-float-root');
-        if (!root) return;
+        if (!root) {
+            console.error('[cunpad] initFloat: #cunpad-float-root tidak ditemukan');
+            return;
+        }
 
-        const panel    = document.getElementById('cunpad-float-panel');
+        const panel     = document.getElementById('cunpad-float-panel');
         const toggleBtn = document.getElementById('cunpad-float-btn');
         const closeBtn  = document.getElementById('cunpad-float-close');
-        let   opened    = false;
+
+        // FIX: guard elemen wajib float
+        if (!panel || !toggleBtn || !closeBtn) {
+            console.error('[cunpad] initFloat: elemen panel/toggle/close tidak ditemukan');
+            return;
+        }
+
+        let opened = false;
 
         const open = () => {
             panel.classList.remove('cunpad-hidden');
@@ -258,7 +277,9 @@
             toggleBtn.setAttribute('aria-expanded', 'false');
         };
 
-        toggleBtn.addEventListener('click', () => panel.classList.contains('cunpad-hidden') ? open() : close());
+        toggleBtn.addEventListener('click', () =>
+            panel.classList.contains('cunpad-hidden') ? open() : close()
+        );
         closeBtn.addEventListener('click', close);
     }
 
@@ -267,12 +288,21 @@
     // ═══════════════════════════════════════════════════════
     function initFull() {
         const dash = document.getElementById('cunpad-dashboard');
-        if (!dash) return;
+        if (!dash) {
+            console.error('[cunpad] initFull: #cunpad-dashboard tidak ditemukan');
+            return;
+        }
 
         const $overlay  = document.getElementById('cunpad-auth-overlay');
         const $header   = document.getElementById('cunpad-header');
         const $content  = document.getElementById('cunpad-content-area');
         const $dot      = document.getElementById('cunpad-status-dot');
+
+        // FIX: guard elemen layout utama
+        if (!$overlay || !$header || !$content) {
+            console.error('[cunpad] initFull: elemen overlay/header/content tidak ditemukan');
+            return;
+        }
 
         /* ── Auth state ── */
         const show = (state) => {
@@ -344,7 +374,7 @@
             const msgEl    = document.getElementById('cunpad-register-msg');
 
             if (!email || !password)  { setStatus(msgEl, 'Semua field wajib diisi.', 'error'); return; }
-            if (password.length < 6) { setStatus(msgEl, 'Password minimal 6 karakter.', 'error'); return; }
+            if (password.length < 6)  { setStatus(msgEl, 'Password minimal 6 karakter.', 'error'); return; }
             setStatus(msgEl, '⏳ Mendaftarkan…', 'info');
 
             try {
@@ -372,13 +402,47 @@
             document.getElementById('cunpad-register-form').style.display = 'none';
         });
 
-        /* ── Chat ── */
-        wireChatInput({
-            inputEl:    document.getElementById('cunpad-chat-input'),
-            sendBtn:    document.getElementById('cunpad-chat-send'),
-            messagesEl: document.getElementById('cunpad-chat-messages'),
-            tokenFn:    Token.get,
+        /* ── Chat ──
+         * FIX: wireChatInput hanya dipanggil setelah $content visible agar
+         * elemen tidak null / rendering belum siap.
+         * Untuk user yang sudah login, panggil sekarang.
+         * Untuk user belum login, panggil setelah login berhasil.
+         */
+        let chatWired = false;
+        const wireChat = () => {
+            if (chatWired) return;
+            wireChatInput({
+                inputEl:    document.getElementById('cunpad-chat-input'),
+                sendBtn:    document.getElementById('cunpad-chat-send'),
+                messagesEl: document.getElementById('cunpad-chat-messages'),
+                tokenFn:    Token.get,
+            });
+            chatWired = true;
+        };
+
+        // Jika sudah login saat load, langsung wire
+        if (Token.get()) wireChat();
+
+        // FIX: patch show() agar wireChat dipanggil saat dashboard pertama kali ditampilkan
+        const _originalLoginBtn = document.getElementById('cunpad-login-btn');
+        _originalLoginBtn?.addEventListener('click', async () => {
+            // wireChat dipanggil setelah show('dashboard') berhasil
+            // Ini dilakukan via MutationObserver pada $content
         });
+
+        // Cara paling reliable: observe display $content
+        const observer = new MutationObserver(() => {
+            if ($content.style.display !== 'none' && $content.style.display !== '') return;
+            if ($content.style.display === '') {
+                wireChat();
+            }
+        });
+        observer.observe($content, { attributes: true, attributeFilter: ['style'] });
+
+        // Fallback: override show() untuk trigger wireChat
+        const _origShow = show;
+        // Patch login button click agar wireChat jalan setelah show('dashboard')
+        // Sudah ditangani oleh observer di atas.
 
         /* ── Submit dataset ── */
         document.getElementById('cunpad-submit-btn')?.addEventListener('click', async () => {
@@ -444,11 +508,31 @@
     }
 
     /* ── Boot ────────────────────────────────────────────── */
-    document.addEventListener('DOMContentLoaded', () => {
-        const mode = cfg.mode;
+    function boot() {
+        // Utamakan cunpadConfig.mode dari wp_localize_script.
+        // Fallback: deteksi otomatis dari elemen DOM yang ada di halaman.
+        let mode = cfg.mode;
+
+        if (!mode) {
+            if (document.getElementById('cunpad-dashboard'))   mode = 'full';
+            else if (document.getElementById('cunpad-public')) mode = 'public';
+            else if (document.getElementById('cunpad-float-root')) mode = 'float';
+        }
+
+        if (!mode) {
+            console.warn('[cunpad] Tidak ada elemen widget yang ditemukan di halaman ini.');
+            return;
+        }
+
         if (mode === 'public') initPublic();
         if (mode === 'float')  initFloat();
         if (mode === 'full')   initFull();
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 
 })();
