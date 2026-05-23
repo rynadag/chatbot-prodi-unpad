@@ -67,13 +67,49 @@ async function getLLM() {
     return _llm;
 }
 
-// ── Retrieve context from vector store ───────────────────────
+const SYNONYM_MAP = [
+    {
+        keywords: ["kepala prodi", "kaprodi", "ketua prodi", 
+                   "ketua program studi", "pimpinan prodi", 
+                   "kepala program studi"],
+        expand:   "kepala ketua kaprodi pimpinan program studi MIM"
+    },
+    {
+        keywords: ["biaya", "ukt", "spp", "bayar", "biaya kuliah"],
+        expand:   "biaya kuliah UKT SPP pembayaran semester"
+    },
+    {
+        keywords: ["daftar", "pendaftaran", "registrasi", "masuk"],
+        expand:   "pendaftaran registrasi penerimaan mahasiswa baru PMB"
+    },
+];
+
+function expandQuery(question) {
+    const q = question.toLowerCase();
+    for (const { keywords, expand } of SYNONYM_MAP) {
+        if (keywords.some(k => q.includes(k))) {
+            return `${question} ${expand}`;
+        }
+    }
+    return question;
+}
+
 async function retrieveContext(question) {
     const vectorStore = await getVectorStore();
-    if (!vectorStore) return null;
+    if (!vectorStore) {
+        console.log("❌ vectorStore null");
+        return null;
+    }
+
+    const query = expandQuery(question);
+    console.log("🔍 Query:", query);
 
     const k    = parseInt(process.env.RAG_TOP_K ?? "8", 10);
-    const docs  = await vectorStore.similaritySearch(question, k);
+    const docs = await vectorStore.similaritySearch(query, k);
+
+    console.log("📄 Dokumen ditemukan:", docs.length);
+    docs.forEach((d, i) => console.log(`  [${i}]`, d.pageContent.slice(0, 100)));
+
     if (!docs.length) return "";
     return docs.map(d => d.pageContent).join("\n\n---\n\n");
 }

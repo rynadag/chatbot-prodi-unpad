@@ -143,7 +143,7 @@ async function _init() {
 
         const collection = mongoose.connection
             .getClient()
-            .db("chatbot_db")
+            .db("test")
             .collection("knowledgesources");
 
         const embedder = await getEmbedder();
