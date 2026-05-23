@@ -1,14 +1,33 @@
 /* ============================================================
-   Chatbot Prodi Unpad — Styles v3.0
+   Chatbot Prodi Unpad — Styles v3.2
    All classes prefixed with .cunpad- to prevent theme conflicts.
    ============================================================ */
 
-/* ── Reset for plugin elements ─────────────────────────── */
+/* ── Base styles for plugin elements ───────────────────── */
 .cunpad-wrap *, .cunpad-public-widget *,
 #cunpad-float-root * {
     box-sizing: border-box;
     font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
     line-height: 1.5;
+}
+
+.cunpad-wrap,
+.cunpad-public-widget,
+#cunpad-float-root {
+    --cunpad-yellow: #ffb300;
+    --cunpad-yellow-deep: #df9a00;
+    --cunpad-red: #ed1c24;
+    --cunpad-red-dark: #b7131a;
+    --cunpad-black: #141414;
+    --cunpad-ink: #24201f;
+    --cunpad-muted: #6f6964;
+    --cunpad-line: #e7e2da;
+    --cunpad-soft: #fbfaf7;
+    --cunpad-yellow-soft: #fff3c4;
+    --cunpad-paper: #fffdf8;
+    --cunpad-shadow: 0 18px 44px rgba(20,20,20,.12);
+    --cunpad-shadow-soft: 0 8px 24px rgba(20,20,20,.08);
+    color: var(--cunpad-ink);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -17,77 +36,92 @@
 
 .cunpad-wrap {
     display: flex;
-    min-height: 80vh;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
+    width: min(100%, 1080px);
+    min-height: 78vh;
+    margin: 24px auto;
+    border: 1px solid var(--cunpad-line);
+    border-radius: 8px;
     overflow: hidden;
     position: relative;
-    background: #f8fafc;
-    box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    background: var(--cunpad-soft);
+    box-shadow: var(--cunpad-shadow);
+    isolation: isolate;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────── */
 
 .cunpad-sidebar {
-    width: 220px;
+    width: 238px;
     flex-shrink: 0;
-    background: #1e293b;
+    background: var(--cunpad-black);
     display: flex;
     flex-direction: column;
-    padding: 20px 0;
+    padding: 0 0 18px;
+    position: relative;
+}
+
+.cunpad-sidebar::before {
+    content: '';
+    height: 12px;
+    background: linear-gradient(90deg, var(--cunpad-yellow) 0 72%, var(--cunpad-red) 72% 100%);
+    flex: 0 0 12px;
 }
 
 .cunpad-sidebar-logo {
-    padding: 0 16px 18px;
-    text-align: center;
-    border-bottom: 1px solid #334155;
+    padding: 22px 18px 20px;
+    border-bottom: 1px solid #2d2a27;
 }
 
 .cunpad-logo-img {
-    width: 72px;
+    width: 76px;
     height: auto;
     display: block;
-    margin: 0 auto 10px;
-    border-radius: 8px;
+    margin: 0 0 12px;
+    border-radius: 6px;
 }
 
 .cunpad-sidebar-logo h3 {
-    color: #f1f5f9;
-    margin: 0 0 2px;
-    font-size: .9rem;
+    color: #fff;
+    margin: 0 0 4px;
+    font-size: .95rem;
     font-weight: 700;
+    line-height: 1.3;
 }
 
 .cunpad-sidebar-logo p {
-    color: #94a3b8;
-    font-size: .75rem;
+    color: #d8d1c6;
+    font-size: .76rem;
     margin: 0;
 }
 
 .cunpad-sidebar-nav {
     flex-grow: 1;
-    padding-top: 14px;
+    padding: 16px 10px 0;
     display: flex;
     flex-direction: column;
+    gap: 6px;
 }
 
 .cunpad-nav-link {
-    display: block !important;
-    padding: 12px 18px !important;
-    color: #cbd5e1 !important;
+    display: flex !important;
+    align-items: center;
+    min-height: 42px;
+    padding: 10px 12px !important;
+    color: #e9e2d8 !important;
     text-decoration: none !important;
     font-weight: 600;
     font-size: .87rem;
-    transition: background .15s, padding-left .15s, color .15s;
+    transition: background .15s, color .15s, transform .15s;
     border-left: 3px solid transparent;
+    border-radius: 6px;
 }
 
 .cunpad-nav-link:hover,
 .cunpad-nav-link.active {
-    background: #0f172a !important;
-    color: #f1f5f9 !important;
-    padding-left: 22px !important;
-    border-left-color: #3b82f6 !important;
+    background: #292521 !important;
+    color: #fff !important;
+    border-left-color: var(--cunpad-yellow) !important;
+    transform: translateX(2px);
 }
 
 /* ── Main area ───────────────────────────────────────────── */
@@ -104,23 +138,38 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 22px;
+    gap: 16px;
+    min-height: 74px;
+    padding: 16px 22px;
     background: #fff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--cunpad-line);
     flex-shrink: 0;
+    box-shadow: 0 1px 0 rgba(20,20,20,.03);
 }
 
 .cunpad-header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    min-width: 0;
+}
+
+.cunpad-header-text {
+    min-width: 0;
 }
 
 .cunpad-main-header h1 {
     margin: 0;
-    color: #1e40af;
-    font-size: 1.15rem;
+    color: var(--cunpad-ink);
+    font-size: 1.08rem;
     font-weight: 700;
+    line-height: 1.25;
+}
+
+.cunpad-header-text p {
+    margin: 2px 0 0;
+    color: var(--cunpad-muted);
+    font-size: .78rem;
 }
 
 /* Live status dot */
@@ -128,17 +177,17 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 0 3px rgba(34,197,94,.25);
+    background: var(--cunpad-yellow);
+    box-shadow: 0 0 0 3px rgba(246,182,0,.24);
     animation: cunpad-pulse-dot 2s infinite;
 }
 @keyframes cunpad-pulse-dot {
-    0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
-    50%       { box-shadow: 0 0 0 6px rgba(34,197,94,.05); }
+    0%, 100% { box-shadow: 0 0 0 3px rgba(246,182,0,.24); }
+    50%       { box-shadow: 0 0 0 6px rgba(215,25,32,.08); }
 }
 
 .cunpad-content-area {
-    padding: 20px;
+    padding: 22px;
     overflow-y: auto;
     flex-grow: 1;
 }
@@ -148,45 +197,72 @@
 .cunpad-section {
     display: none;
     background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 20px;
+    border: 1px solid var(--cunpad-line);
+    border-radius: 8px;
+    padding: 18px;
+    box-shadow: var(--cunpad-shadow-soft);
 }
 .cunpad-section.active { display: block; }
 
+.cunpad-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    border-bottom: 1px solid var(--cunpad-line);
+    margin-bottom: 16px;
+    padding-bottom: 13px;
+    position: relative;
+}
+
+.cunpad-section-head::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 96px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cunpad-yellow) 0 68%, var(--cunpad-red) 68% 100%);
+    border-radius: 999px;
+}
+
 .cunpad-section h2 {
-    margin: 0 0 14px;
-    color: #1e40af;
-    font-size: 1rem;
-    border-bottom: 2px solid #eff6ff;
-    padding-bottom: 8px;
+    margin: 0;
+    color: var(--cunpad-ink);
+    font-size: 1.02rem;
+}
+
+.cunpad-section p {
+    color: var(--cunpad-muted);
+    font-size: .86rem;
+    margin: 4px 0 0;
 }
 
 .cunpad-section label {
     display: block;
     font-size: .85rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--cunpad-ink);
     margin: 10px 0 4px;
 }
 
 .cunpad-section input[type="text"],
 .cunpad-section textarea {
     width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 7px;
+    padding: 11px 12px;
+    border: 1px solid #d8d1c6;
+    border-radius: 8px;
     font-size: .9rem;
-    margin-bottom: 6px;
+    margin-bottom: 9px;
     transition: border-color .15s, box-shadow .15s;
     resize: vertical;
-    background: #f9fafb;
+    background: var(--cunpad-paper);
 }
 
 .cunpad-section input[type="text"]:focus,
 .cunpad-section textarea:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    border-color: var(--cunpad-yellow);
+    box-shadow: 0 0 0 3px rgba(246,182,0,.2);
     outline: none;
     background: #fff;
 }
@@ -196,7 +272,7 @@
 .cunpad-auth-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(15,23,42,.86);
+    background: rgba(20,20,20,.86);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -206,22 +282,34 @@
 
 .cunpad-auth-box {
     background: #fff;
-    border-radius: 16px;
-    padding: 32px 28px;
+    border-radius: 8px;
+    padding: 30px 28px;
     width: 330px;
     text-align: center;
-    box-shadow: 0 25px 50px rgba(0,0,0,.3);
+    box-shadow: 0 26px 64px rgba(0,0,0,.34);
+    border-top: 8px solid var(--cunpad-yellow);
+    position: relative;
+}
+
+.cunpad-auth-box::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 0;
+    width: 28%;
+    height: 8px;
+    background: var(--cunpad-red);
 }
 
 .cunpad-auth-logo {
     width: 64px;
     height: auto;
-    margin-bottom: 10px;
-    border-radius: 8px;
+    margin-bottom: 12px;
+    border-radius: 6px;
 }
 
 .cunpad-auth-box h2 {
-    color: #1e40af;
+    color: var(--cunpad-ink);
     font-size: .98rem;
     margin: 0 0 18px;
     line-height: 1.4;
@@ -229,7 +317,7 @@
 
 .cunpad-auth-box h3 {
     font-size: .88rem;
-    color: #374151;
+    color: var(--cunpad-ink);
     margin: 0 0 14px;
     font-weight: 700;
 }
@@ -239,27 +327,27 @@
     width: 100%;
     padding: 10px 13px;
     margin-bottom: 10px;
-    border: 1px solid #d1d5db;
+    border: 1px solid #d8d1c6;
     border-radius: 8px;
     font-size: .9rem;
     display: block;
     transition: border-color .15s, box-shadow .15s;
-    background: #f9fafb;
+    background: #fffdf8;
 }
 
 .cunpad-auth-box input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    border-color: var(--cunpad-yellow);
+    box-shadow: 0 0 0 3px rgba(246,182,0,.2);
     outline: none;
     background: #fff;
 }
 
 .cunpad-auth-switch {
     font-size: .8rem;
-    color: #6b7280;
+    color: var(--cunpad-muted);
     margin-top: 12px;
 }
-.cunpad-auth-switch a { color: #2563eb; text-decoration: none; }
+.cunpad-auth-switch a { color: var(--cunpad-red); text-decoration: none; }
 .cunpad-auth-switch a:hover { text-decoration: underline; }
 
 /* ══════════════════════════════════════════════════════════
@@ -267,56 +355,82 @@
    ══════════════════════════════════════════════════════════ */
 
 .cunpad-chat-window {
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border: 1px solid var(--cunpad-line);
+    border-radius: 8px;
     overflow: hidden;
+    background: #fff;
+    box-shadow: 0 3px 14px rgba(20,20,20,.05);
 }
 
 .cunpad-messages {
     min-height: 200px;
     height: 380px;
     overflow-y: auto;
-    padding: 16px;
-    background: #f8fafc;
+    padding: 18px;
+    background:
+        linear-gradient(180deg, rgba(255,251,239,.88), rgba(251,250,247,.96)),
+        var(--cunpad-soft);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 11px;
     scroll-behavior: smooth;
 }
 
 /* Message bubbles */
 .cunpad-msg-bubble {
-    max-width: 85%;
-    padding: 10px 15px;
-    border-radius: 18px;
+    max-width: min(86%, 620px);
+    padding: 11px 14px;
+    border-radius: 14px;
     font-size: .91rem;
     line-height: 1.55;
     word-break: break-word;
 }
 
 .cunpad-user {
-    background: #2563eb;
+    background: var(--cunpad-black);
     color: #fff;
     align-self: flex-end;
-    border-bottom-right-radius: 4px;
+    border-bottom-right-radius: 5px;
+    box-shadow: 0 6px 16px rgba(20,20,20,.14);
 }
 
 .cunpad-bot {
     background: #fff;
-    color: #1f2937;
+    color: var(--cunpad-ink);
     align-self: flex-start;
-    border-bottom-left-radius: 4px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    border-bottom-left-radius: 5px;
+    border: 1px solid var(--cunpad-line);
+    box-shadow: 0 5px 16px rgba(20,20,20,.06);
 }
 
-/* Streaming cursor */
+/* Live answer cursor */
 .cunpad-streaming .cunpad-cursor {
     display: inline-block;
     animation: cunpad-blink .7s step-end infinite;
-    color: #3b82f6;
+    color: var(--cunpad-red);
     font-weight: bold;
 }
+
+.cunpad-typing {
+    color: var(--cunpad-muted);
+    font-size: .86rem;
+}
+
+.cunpad-typing::after {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    text-align: left;
+    animation: cunpad-typing-dots 1.2s infinite;
+}
+
+@keyframes cunpad-typing-dots {
+    0%   { content: ''; }
+    33%  { content: '.'; }
+    66%  { content: '..'; }
+    100% { content: '...'; }
+}
+
 @keyframes cunpad-blink {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0; }
@@ -325,35 +439,96 @@
 /* Markdown inside bot bubbles */
 .cunpad-bot strong { font-weight: 700; }
 .cunpad-bot em     { font-style: italic; }
-.cunpad-bot code   { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: .88em; }
-.cunpad-bot .cunpad-md-h { margin: 6px 0 3px; font-size: .95em; color: #1e3a8a; }
+.cunpad-bot code   { background: #fff5cf; padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: .88em; }
+.cunpad-bot .cunpad-md-h { margin: 6px 0 3px; font-size: .95em; color: var(--cunpad-ink); }
 .cunpad-bot ul { margin: 4px 0 4px 18px; padding: 0; }
 .cunpad-bot li { margin-bottom: 2px; }
+
+.cunpad-source {
+    margin-top: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: #fff8df;
+    border: 1px solid #f4d36a;
+    border-left: 4px solid var(--cunpad-red);
+    color: var(--cunpad-ink);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cunpad-source span {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--cunpad-red);
+    font-weight: 800;
+}
+
+.cunpad-source code {
+    background: transparent;
+    padding: 0;
+    white-space: normal;
+    color: var(--cunpad-ink);
+}
+
+/* Quick prompts */
+.cunpad-quick-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 11px 12px;
+    background: #fffaf0;
+    border-top: 1px solid var(--cunpad-line);
+}
+
+.cunpad-chip {
+    border: 1px solid #e8d48b;
+    background: #fff;
+    color: var(--cunpad-ink);
+    border-radius: 999px;
+    padding: 7px 11px;
+    font-size: .78rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+}
+
+.cunpad-chip:hover {
+    background: var(--cunpad-yellow-soft);
+    border-color: var(--cunpad-yellow);
+    color: var(--cunpad-black);
+}
+
+.cunpad-chip:active { transform: scale(.98); }
 
 /* Input row */
 .cunpad-input-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px;
+    padding: 12px;
     background: #fff;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--cunpad-line);
 }
 
 .cunpad-input-row input[type="text"] {
     flex-grow: 1;
-    border: 1px solid #d1d5db;
-    border-radius: 22px;
-    padding: 9px 16px;
+    border: 1px solid #d8d1c6;
+    border-radius: 999px;
+    min-height: 42px;
+    padding: 10px 16px;
     font-size: .9rem;
     outline: none;
-    background: #f9fafb;
+    background: var(--cunpad-paper);
     transition: border-color .15s, box-shadow .15s;
+    min-width: 0;
 }
 
 .cunpad-input-row input[type="text"]:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    border-color: var(--cunpad-yellow);
+    box-shadow: 0 0 0 3px rgba(246,182,0,.2);
     background: #fff;
 }
 
@@ -362,37 +537,40 @@
 .cunpad-btn {
     border: none;
     cursor: pointer;
-    font-weight: 600;
-    transition: background .15s, transform .1s;
+    font-weight: 700;
+    transition: background .15s, transform .1s, box-shadow .15s;
     white-space: nowrap;
-    border-radius: 22px;
-    padding: 9px 20px;
+    border-radius: 999px;
+    min-height: 42px;
+    padding: 9px 18px;
     font-size: .87rem;
 }
 
 .cunpad-btn:active { transform: scale(.97); }
 
 .cunpad-btn-primary {
-    background: #2563eb;
-    color: #fff;
+    background: var(--cunpad-yellow);
+    color: var(--cunpad-black);
+    box-shadow: 0 6px 14px rgba(255,179,0,.24);
 }
-.cunpad-btn-primary:hover    { background: #1d4ed8; }
-.cunpad-btn-primary:disabled { background: #93c5fd; cursor: not-allowed; transform: none; }
+.cunpad-btn-primary:hover    { background: var(--cunpad-yellow-deep); }
+.cunpad-btn-primary:disabled { background: #f7dc96; cursor: not-allowed; transform: none; }
 
 .cunpad-btn-secondary {
-    background: #f1f5f9;
-    color: #374151;
-    border: 1px solid #d1d5db;
+    background: #fff;
+    color: var(--cunpad-ink);
+    border: 1px solid #d8d1c6;
 }
-.cunpad-btn-secondary:hover { background: #e2e8f0; }
+.cunpad-btn-secondary:hover { background: #fff3c4; }
 
 .cunpad-btn-danger {
-    background: #dc2626;
+    background: var(--cunpad-red);
     color: #fff;
-    border-radius: 8px;
+    border-radius: 999px;
     padding: 8px 16px;
+    box-shadow: none;
 }
-.cunpad-btn-danger:hover { background: #b91c1c; }
+.cunpad-btn-danger:hover { background: var(--cunpad-red-dark); }
 
 .cunpad-btn-full {
     width: 100%;
@@ -413,21 +591,22 @@
     line-height: 1.4;
 }
 
-.cunpad-info    { background: #dbeafe; color: #1e40af; }
+.cunpad-info    { background: #fff3c4; color: var(--cunpad-ink); }
 .cunpad-success { background: #d1fae5; color: #065f46; }
 .cunpad-error   { background: #fee2e2; color: #991b1b; }
 
 /* ── Submission history ──────────────────────────────────── */
 
 .cunpad-submission-item {
-    border: 1px solid #e2e8f0;
-    border-left: 5px solid #d1d5db;
-    padding: 12px 14px;
+    border: 1px solid var(--cunpad-line);
+    border-left: 5px solid #d8d1c6;
+    padding: 13px 14px;
     margin-top: 10px;
     border-radius: 8px;
     font-size: .86rem;
     line-height: 1.7;
     background: #fff;
+    box-shadow: 0 4px 12px rgba(20,20,20,.04);
 }
 
 .cunpad-status-badge { font-weight: 700; }
@@ -440,36 +619,58 @@
    ══════════════════════════════════════════════════════════ */
 
 .cunpad-public-widget {
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
+    border: 1px solid var(--cunpad-line);
+    border-radius: 8px;
     overflow: hidden;
     max-width: 640px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    background: #fff;
+    box-shadow: var(--cunpad-shadow);
 }
 
 .cunpad-public-header {
-    background: #1e293b;
-    color: #f1f5f9;
-    padding: 13px 16px;
+    background: #fff;
+    color: var(--cunpad-ink);
+    padding: 14px 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     font-weight: 700;
     font-size: .92rem;
+    border-top: 8px solid var(--cunpad-yellow);
+    border-bottom: 4px solid var(--cunpad-red);
+    position: relative;
+}
+
+.cunpad-public-title {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.cunpad-public-title span {
+    line-height: 1.25;
+}
+
+.cunpad-public-title small {
+    color: var(--cunpad-muted);
+    font-weight: 500;
+    font-size: .72rem;
+    line-height: 1.35;
 }
 
 .cunpad-pub-logo {
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
     object-fit: contain;
-    border-radius: 50%;
+    border-radius: 6px;
     background: #fff;
-    padding: 2px;
+    padding: 0;
     flex-shrink: 0;
 }
 
-.cunpad-pub-messages { height: 320px; }
-.cunpad-public-widget .cunpad-input-row { background: #f8fafc; }
+.cunpad-pub-messages { height: 340px; }
+.cunpad-public-widget .cunpad-input-row { background: var(--cunpad-soft); }
 
 /* ══════════════════════════════════════════════════════════
    FLOATING BUBBLE WIDGET
@@ -487,13 +688,13 @@
 }
 
 .cunpad-float-btn {
-    width: 60px;
-    height: 60px;
+    width: 62px;
+    height: 62px;
     border-radius: 50%;
-    background: #2563eb;
+    background: var(--cunpad-yellow);
     border: none;
     cursor: pointer;
-    box-shadow: 0 6px 20px rgba(37,99,235,.45);
+    box-shadow: 0 8px 24px rgba(20,20,20,.28);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -503,8 +704,8 @@
 }
 
 .cunpad-float-btn:hover {
-    transform: scale(1.08);
-    box-shadow: 0 8px 28px rgba(37,99,235,.55);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px rgba(20,20,20,.34);
 }
 
 .cunpad-float-btn img {
@@ -534,11 +735,11 @@
 }
 
 .cunpad-float-panel {
-    width: 360px;
-    border-radius: 16px;
+    width: 380px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0,0,0,.2);
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 18px 48px rgba(20,20,20,.22);
+    border: 1px solid var(--cunpad-line);
     background: #fff;
     transition: opacity .22s, transform .22s;
     transform-origin: bottom right;
@@ -547,25 +748,27 @@
 .cunpad-hidden {
     opacity: 0;
     pointer-events: none;
-    transform: scale(.9) translateY(14px);
+    transform: scale(.96) translateY(12px);
 }
 
 .cunpad-float-header {
-    background: #1e293b;
-    color: #f1f5f9;
-    padding: 12px 14px;
+    background: #fff;
+    color: var(--cunpad-ink);
+    padding: 13px 14px;
     display: flex;
     align-items: center;
     gap: 10px;
+    border-top: 8px solid var(--cunpad-yellow);
+    border-bottom: 4px solid var(--cunpad-red);
 }
 
 .cunpad-float-logo {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
-    border-radius: 50%;
+    border-radius: 6px;
     background: #fff;
-    padding: 2px;
+    padding: 0;
     flex-shrink: 0;
 }
 
@@ -573,41 +776,49 @@
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
-.cunpad-float-hdr-text span { font-weight: 700; font-size: .88rem; }
-.cunpad-float-hdr-text small { color: #94a3b8; font-size: .73rem; }
+.cunpad-float-hdr-text span { font-weight: 700; font-size: .9rem; line-height: 1.25; }
+.cunpad-float-hdr-text small { color: var(--cunpad-muted); font-size: .73rem; line-height: 1.35; }
 
 .cunpad-float-close-btn {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 1rem;
+    background: #fff8df;
+    border: 1px solid #f4d36a;
+    color: var(--cunpad-muted);
+    font-size: .92rem;
     cursor: pointer;
-    padding: 2px 4px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
-    border-radius: 4px;
-    transition: color .15s, background .15s;
+    border-radius: 999px;
+    transition: color .15s, background .15s, border-color .15s;
 }
-.cunpad-float-close-btn:hover { color: #fff; background: rgba(255,255,255,.1); }
+.cunpad-float-close-btn:hover { color: #fff; background: var(--cunpad-red); border-color: var(--cunpad-red); }
 
-.cunpad-float-messages { height: 280px !important; }
+.cunpad-float-messages { height: 304px !important; }
 
-.cunpad-float-input-row { background: #f8fafc; }
+.cunpad-float-input-row { background: var(--cunpad-soft); }
 
 /* ── Responsive ─────────────────────────────────────────── */
 
 @media (max-width: 640px) {
     .cunpad-wrap {
         flex-direction: column;
-        min-height: 90vh;
+        width: 100%;
+        min-height: 88vh;
+        margin: 0;
         border-radius: 0;
-        border: none;
+        border-left: none;
+        border-right: none;
     }
 
     .cunpad-sidebar {
         width: 100%;
-        padding: 10px 12px;
+        padding: 0 12px 12px;
     }
 
     .cunpad-sidebar-logo { display: none; }
@@ -616,6 +827,7 @@
         flex-direction: row;
         flex-wrap: wrap;
         gap: 6px;
+        padding-top: 12px;
     }
 
     .cunpad-nav-link {
@@ -623,10 +835,43 @@
         border-radius: 20px;
         border-left: none !important;
         font-size: .8rem;
+        min-height: 36px;
     }
-    .cunpad-nav-link.active { background: #3b82f6 !important; color: #fff !important; }
+    .cunpad-nav-link.active { background: var(--cunpad-yellow) !important; color: var(--cunpad-black) !important; }
 
-    .cunpad-messages { height: 260px; }
+    .cunpad-main-header {
+        padding: 14px 16px;
+        align-items: flex-start;
+    }
+
+    .cunpad-content-area { padding: 14px; }
+
+    .cunpad-messages { height: 300px; padding: 14px; }
+
+    .cunpad-msg-bubble { max-width: 92%; }
+
+    .cunpad-section-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cunpad-quick-prompts {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+    }
+
+    .cunpad-quick-prompts::-webkit-scrollbar { display: none; }
+
+    .cunpad-chip { flex: 0 0 auto; }
+
+    .cunpad-input-row {
+        align-items: stretch;
+    }
+
+    .cunpad-input-row input[type="text"] {
+        width: 100%;
+    }
 
     .cunpad-float-panel { width: calc(100vw - 32px); }
     #cunpad-float-root  { bottom: 16px; right: 16px; }

@@ -51,7 +51,13 @@ router.post("/import", upload.single("importFile"), async (req, res) => {
                 updateOne: {
                     filter: { tag: item.tag },
                     update: {
-                        $set: { content_text: item.content_text, embedding: [] }, // Reset embedding agar di-sync ulang
+                        $set: {
+                            content_text: item.content_text,
+                            embedding: [],
+                            embedding_provider: null,
+                            embedding_model: null,
+                            content_hash: null,
+                        }, // Reset embedding agar di-sync ulang
                         $setOnInsert: { last_compiled: null },
                     },
                     upsert: true,
@@ -99,6 +105,9 @@ router.post("/data", async (req, res) => {
             tag: tag.trim(),
             content_text: content_text.trim(),
             embedding: [],
+            embedding_provider: null,
+            embedding_model: null,
+            content_hash: null,
         });
         await newData.save();
         res.status(201).json(newData);
@@ -119,6 +128,9 @@ router.put("/data/:id", async (req, res) => {
         // Reset embedding jika content berubah agar di-embed ulang
         if (update.content_text) {
             update.embedding = [];
+            update.embedding_provider = null;
+            update.embedding_model = null;
+            update.content_hash = null;
         }
 
         const updatedData = await KnowledgeSource.findByIdAndUpdate(

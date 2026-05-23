@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:  Chatbot Prodi Unpad
- * Description:  Widget chatbot MIM FEB Unpad — didukung Groq API, streaming real-time, dan WordPress REST API.
- * Version:      3.0.0
+ * Description:  Widget chatbot MIM FEB Unpad — didukung Groq API dan WordPress REST API.
+ * Version:      3.2.0
  * Author:       MIM FEB Unpad
  * Text Domain:  chatbot-unpad
  * Requires PHP: 7.4
@@ -10,11 +10,16 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'CUNPAD_VER',  '3.0.0' );
+define( 'CUNPAD_VER',  '3.2.0' );
 define( 'CUNPAD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUNPAD_URL',  plugin_dir_url( __FILE__ ) );
 
 require_once CUNPAD_PATH . 'includes/settings.php';
+
+function cunpad_asset_ver( string $relative_path ): string {
+    $path = CUNPAD_PATH . ltrim( $relative_path, '/' );
+    return file_exists( $path ) ? (string) filemtime( $path ) : CUNPAD_VER;
+}
 
 // ══════════════════════════════════════════════════════════════
 // 1. ASSETS
@@ -26,13 +31,13 @@ function cunpad_register_assets() {
         'cunpad-style',
         CUNPAD_URL . 'assets/chatbot-widget.css',
         [],
-        CUNPAD_VER
+        cunpad_asset_ver( 'assets/chatbot-widget.css' )
     );
     wp_register_script(
         'cunpad-script',
         CUNPAD_URL . 'assets/chatbot-widget.js',
         [],
-        CUNPAD_VER,
+        cunpad_asset_ver( 'assets/chatbot-widget.js' ),
         true  // load in footer
     );
 }
@@ -42,12 +47,17 @@ function cunpad_enqueue( string $mode ) {
     wp_enqueue_script( 'cunpad-script' );
     wp_localize_script( 'cunpad-script', 'cunpadConfig', [
         'restUrl'     => esc_url_raw( rest_url( 'cunpad/v1/' ) ),
-        'nonce'       => wp_create_nonce( 'wp_rest' ),       // WP REST nonce
-        'ajaxNonce'   => wp_create_nonce( 'cunpad_nonce' ),  // WP AJAX nonce
-        'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+        'nonce'       => wp_create_nonce( 'wp_rest' ),
         'mode'        => $mode,
         'logoUnpad'   => CUNPAD_URL . 'assets/logo-unpad.png',
         'logoChatbot' => CUNPAD_URL . 'assets/logo-chatbot.png',
+        'maxQuestion' => 500,
+        'suggestions' => [
+            'Siapa Ketua Program Studi MIM?',
+            'Berapa total SKS MIM?',
+            'Apa syarat Ujian Tesis?',
+            'Apa saja konsentrasi MIM?',
+        ],
     ] );
 }
 
@@ -180,7 +190,7 @@ function cunpad_rest_health(): WP_REST_Response {
 
 /* ── Public chat ────────────────────────────────────────────── */
 function cunpad_rest_public_chat( WP_REST_Request $req ): WP_REST_Response {
-    $question = sanitize_text_field( $req->get_param( 'question' ) ?? '' );
+    $question = cunpad_sanitize_question( $req->get_param( 'question' ) ?? '' );
     if ( ! $question ) return new WP_REST_Response( [ 'error' => 'Pertanyaan kosong.' ], 400 );
 
     $r = cunpad_http_post( '/api/public-chat', [ 'question' => $question ] );
@@ -191,12 +201,18 @@ function cunpad_rest_public_chat( WP_REST_Request $req ): WP_REST_Response {
 
 /* ── Streaming SSE proxy ────────────────────────────────────── */
 function cunpad_rest_stream( WP_REST_Request $req ) {
-    $question = sanitize_text_field( $req->get_param( 'question' ) ?? '' );
+    $question = cunpad_sanitize_question( $req->get_param( 'question' ) ?? '' );
     $token    = sanitize_text_field( $req->get_param( 'token' )    ?? '' );
 
     if ( ! $question ) {
         http_response_code( 400 );
         echo "data: " . wp_json_encode( [ 'error' => 'Pertanyaan kosong.' ] ) . "\n\n";
+        exit;
+    }
+
+    if ( ! function_exists( 'curl_init' ) ) {
+        http_response_code( 503 );
+        echo "data: " . wp_json_encode( [ 'error' => 'Ekstensi cURL belum aktif di server WordPress.' ] ) . "\n\n";
         exit;
     }
 
@@ -267,7 +283,7 @@ function cunpad_rest_register( WP_REST_Request $req ): WP_REST_Response {
 
 /* ── Authenticated chat ─────────────────────────────────────── */
 function cunpad_rest_chat( WP_REST_Request $req ): WP_REST_Response {
-    $question = sanitize_text_field( $req->get_param( 'question' ) ?? '' );
+    $question = cunpad_sanitize_question( $req->get_param( 'question' ) ?? '' );
     $token    = sanitize_text_field( $req->get_param( 'token' )    ?? '' );
 
     if ( ! $question || ! $token ) return new WP_REST_Response( [ 'error' => 'Data tidak lengkap.' ], 400 );
@@ -280,6 +296,18 @@ function cunpad_rest_chat( WP_REST_Request $req ): WP_REST_Response {
     }
 
     return new WP_REST_Response( $r['body'], $r['code'] );
+}
+
+function cunpad_sanitize_question( $value ): string {
+    $question = sanitize_textarea_field( (string) $value );
+    $question = preg_replace( '/\s+/', ' ', $question );
+    $question = is_string( $question ) ? trim( $question ) : '';
+
+    if ( strlen( $question ) > 500 ) {
+        $question = substr( $question, 0, 500 );
+    }
+
+    return $question;
 }
 
 /* ── Submission ─────────────────────────────────────────────── */
@@ -326,9 +354,9 @@ function cunpad_shortcode_full(): string {
                 <p>FEB Unpad</p>
             </div>
             <nav class="cunpad-sidebar-nav">
-                <a href="#" class="cunpad-nav-link active" data-target="cunpad-sec-chat">💬 Chatbot</a>
-                <a href="#" class="cunpad-nav-link" data-target="cunpad-sec-submit">📤 Kirim Data</a>
-                <a href="#" class="cunpad-nav-link" data-target="cunpad-sec-history">📋 Histori</a>
+                <a href="#" class="cunpad-nav-link active" data-target="cunpad-sec-chat">Chatbot</a>
+                <a href="#" class="cunpad-nav-link" data-target="cunpad-sec-submit">Kirim Data</a>
+                <a href="#" class="cunpad-nav-link" data-target="cunpad-sec-history">Histori</a>
             </nav>
         </aside>
 
@@ -363,7 +391,10 @@ function cunpad_shortcode_full(): string {
             <header class="cunpad-main-header" id="cunpad-header" style="display:none">
                 <div class="cunpad-header-left">
                     <span class="cunpad-status-dot" id="cunpad-status-dot"></span>
-                    <h1>Selamat Datang! 👋</h1>
+                    <div class="cunpad-header-text">
+                        <h1>Dashboard Chatbot MIM</h1>
+                        <p>Asisten informasi akademik FEB Unpad</p>
+                    </div>
                 </div>
                 <button id="cunpad-logout-btn" class="cunpad-btn cunpad-btn-danger">Logout</button>
             </header>
@@ -371,31 +402,45 @@ function cunpad_shortcode_full(): string {
             <div id="cunpad-content-area" style="display:none" class="cunpad-content-area">
 
                 <div id="cunpad-sec-chat" class="cunpad-section active">
-                    <h2>💬 Chatbot</h2>
+                    <div class="cunpad-section-head">
+                        <div>
+                            <h2>Chatbot</h2>
+                            <p>Tanyakan informasi akademik, tesis, kurikulum, atau administrasi MIM.</p>
+                        </div>
+                    </div>
                     <div class="cunpad-chat-window">
                         <div id="cunpad-chat-messages" class="cunpad-messages"></div>
+                        <div class="cunpad-quick-prompts" data-input="cunpad-chat-input"></div>
                         <div class="cunpad-input-row">
-                            <input type="text" id="cunpad-chat-input" placeholder="Ketik pertanyaan Anda… (Enter untuk kirim)" autocomplete="off">
-                            <button id="cunpad-chat-send" class="cunpad-btn cunpad-btn-primary">Kirim</button>
+                            <input type="text" id="cunpad-chat-input" placeholder="Ketik pertanyaan Anda... (Enter untuk kirim)" autocomplete="off" maxlength="500">
+                            <button id="cunpad-chat-send" class="cunpad-btn cunpad-btn-primary" aria-label="Kirim pertanyaan">Kirim</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="cunpad-sec-submit" class="cunpad-section">
-                    <h2>📤 Bantu Kami Belajar</h2>
-                    <p>Kirim informasi yang belum ada di database untuk ditinjau oleh admin.</p>
+                    <div class="cunpad-section-head">
+                        <div>
+                            <h2>Bantu Kami Belajar</h2>
+                            <p>Kirim informasi yang belum ada di database untuk ditinjau oleh admin.</p>
+                        </div>
+                    </div>
                     <label for="cunpad-sub-tag">Tag / Topik</label>
                     <input type="text" id="cunpad-sub-tag" placeholder="Contoh: biaya_ukt_2025">
                     <label for="cunpad-sub-content">Konten Lengkap</label>
-                    <textarea id="cunpad-sub-content" rows="5" placeholder="Isi informasi lengkap di sini…"></textarea>
+                    <textarea id="cunpad-sub-content" rows="5" placeholder="Isi informasi lengkap di sini..."></textarea>
                     <button id="cunpad-submit-btn" class="cunpad-btn cunpad-btn-primary">Kirim Saran</button>
                     <div id="cunpad-submit-msg" class="cunpad-msg"></div>
                 </div>
 
                 <div id="cunpad-sec-history" class="cunpad-section">
-                    <h2>📋 Histori Kiriman Saya</h2>
-                    <p>Status data yang pernah Anda kirim.</p>
-                    <button id="cunpad-reload-history" class="cunpad-btn cunpad-btn-secondary">🔄 Muat Ulang</button>
+                    <div class="cunpad-section-head">
+                        <div>
+                            <h2>Histori Kiriman Saya</h2>
+                            <p>Status data yang pernah Anda kirim.</p>
+                        </div>
+                    </div>
+                    <button id="cunpad-reload-history" class="cunpad-btn cunpad-btn-secondary">Muat Ulang</button>
                     <div id="cunpad-history-msg" class="cunpad-msg"></div>
                     <div id="cunpad-history-list"></div>
                 </div>
@@ -412,13 +457,17 @@ function cunpad_shortcode_public(): string {
     ob_start(); ?>
     <div id="cunpad-public" class="cunpad-public-widget">
         <div class="cunpad-public-header">
-            <img src="<?= esc_url( CUNPAD_URL . 'assets/logo-chatbot.png' ) ?>" alt="Bot" class="cunpad-pub-logo">
-            <span>Chatbot MIM FEB Unpad</span>
+            <img src="<?= esc_url( CUNPAD_URL . 'assets/logo-unpad.png' ) ?>" alt="Logo Unpad" class="cunpad-pub-logo">
+            <div class="cunpad-public-title">
+                <span>Chatbot MIM FEB Unpad</span>
+                <small>Asisten informasi akademik</small>
+            </div>
         </div>
         <div id="cunpad-pub-messages" class="cunpad-messages cunpad-pub-messages"></div>
+        <div class="cunpad-quick-prompts" data-input="cunpad-pub-input"></div>
         <div class="cunpad-input-row">
-            <input type="text" id="cunpad-pub-input" placeholder="Ketik pertanyaan Anda…" autocomplete="off">
-            <button id="cunpad-pub-send" class="cunpad-btn cunpad-btn-primary">Kirim</button>
+            <input type="text" id="cunpad-pub-input" placeholder="Ketik pertanyaan Anda..." autocomplete="off" maxlength="500">
+            <button id="cunpad-pub-send" class="cunpad-btn cunpad-btn-primary" aria-label="Kirim pertanyaan">Kirim</button>
         </div>
     </div>
     <?php
@@ -430,23 +479,24 @@ function cunpad_shortcode_float(): string {
     cunpad_enqueue( 'float' );
     ob_start(); ?>
     <div id="cunpad-float-root">
-        <button id="cunpad-float-btn" class="cunpad-float-btn" aria-label="Buka Chatbot">
+        <button id="cunpad-float-btn" class="cunpad-float-btn" aria-label="Buka Chatbot" aria-expanded="false">
             <img src="<?= esc_url( CUNPAD_URL . 'assets/logo-chatbot.png' ) ?>" alt="Chat">
             <span id="cunpad-float-badge" class="cunpad-float-badge" style="display:none">!</span>
         </button>
         <div id="cunpad-float-panel" class="cunpad-float-panel cunpad-hidden" role="dialog" aria-label="Chatbot MIM FEB Unpad">
             <div class="cunpad-float-header">
-                <img src="<?= esc_url( CUNPAD_URL . 'assets/logo-chatbot.png' ) ?>" alt="Bot" class="cunpad-float-logo">
+                <img src="<?= esc_url( CUNPAD_URL . 'assets/logo-unpad.png' ) ?>" alt="Logo Unpad" class="cunpad-float-logo">
                 <div class="cunpad-float-hdr-text">
                     <span>Chatbot MIM FEB Unpad</span>
-                    <small>Tanya apa saja tentang MIM</small>
+                    <small>Asisten informasi akademik</small>
                 </div>
                 <button id="cunpad-float-close" class="cunpad-float-close-btn" aria-label="Tutup">✕</button>
             </div>
             <div id="cunpad-float-messages" class="cunpad-messages cunpad-float-messages"></div>
+            <div class="cunpad-quick-prompts" data-input="cunpad-float-input"></div>
             <div class="cunpad-input-row cunpad-float-input-row">
-                <input type="text" id="cunpad-float-input" placeholder="Ketik pertanyaan…" autocomplete="off">
-                <button id="cunpad-float-send" class="cunpad-btn cunpad-btn-primary">Kirim</button>
+                <input type="text" id="cunpad-float-input" placeholder="Ketik pertanyaan..." autocomplete="off" maxlength="500">
+                <button id="cunpad-float-send" class="cunpad-btn cunpad-btn-primary" aria-label="Kirim pertanyaan">Kirim</button>
             </div>
         </div>
     </div>

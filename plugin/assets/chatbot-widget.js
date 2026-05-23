@@ -1,11 +1,9 @@
 /**
- * Chatbot Prodi Unpad — Frontend JS v3.1
+ * Chatbot Prodi Unpad — Frontend JS v3.2
  *
- * Fixes v3.1:
- *  - Null-safety di wireChatInput (cegah TypeError jika elemen tidak ditemukan)
- *  - Guard di initPublic / initFloat / initFull jika elemen DOM tidak ada
- *  - DOMContentLoaded fallback: jika sudah fired, langsung jalankan init
- *  - sendStreaming: tangani kasus sendBtn/inputEl null agar tidak crash
+ * UX improvements:
+ *  - Quick prompts, source styling
+ *  - Safer input length handling and clearer streaming state
  */
 
 (function () {
@@ -14,9 +12,17 @@
     /* ── Config ───────────────────────────────────────────── */
     const cfg  = window.cunpadConfig || {};
     const REST = cfg.restUrl  || '/wp-json/cunpad/v1/';
-    const AJAX = cfg.ajaxUrl  || '/wp-admin/admin-ajax.php';
     const NONCE_REST = cfg.nonce      || '';
-    const NONCE_AJAX = cfg.ajaxNonce  || '';
+    const MAX_QUESTION = Number(cfg.maxQuestion || 500);
+    const SUGGESTIONS = Array.isArray(cfg.suggestions) && cfg.suggestions.length
+        ? cfg.suggestions
+        : [
+            'Siapa Ketua Program Studi MIM?',
+            'Berapa total SKS MIM?',
+            'Apa syarat Ujian Tesis?',
+            'Apa saja konsentrasi MIM?',
+        ];
+    const WELCOME_TEXT = 'Halo! Saya siap membantu pertanyaan seputar Program Studi MIM FEB Unpad. Pilih contoh pertanyaan di bawah atau ketik pertanyaan Anda.';
 
     /* ── REST helper ─────────────────────────────────────── */
     // FIX: jangan kirim X-WP-Nonce kalau kosong — WordPress akan balas 403
@@ -54,12 +60,17 @@
         clear: ()      => { sessionStorage.removeItem('cunpad_token'); sessionStorage.removeItem('cunpad_role'); },
     };
 
+    function normalizeQuestion(text) {
+        return String(text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_QUESTION);
+    }
+
     /* ── Markdown renderer ───────────────────────────────── */
     function md(text) {
         if (!text) return '';
         let s = text
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+        s = s.replace(/\n\nSumber:\s*([^\n]+)\s*$/i, '\n\n<div class="cunpad-source"><span>Sumber</span><code>$1</code></div>');
         s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
         s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -84,6 +95,39 @@
         return div;
     }
 
+    function setButtonBusy(button, busy) {
+        if (!button) return;
+        if (!button.dataset.originalText) button.dataset.originalText = button.textContent || 'Kirim';
+        button.disabled = busy;
+        button.textContent = busy ? 'Menjawab...' : button.dataset.originalText;
+    }
+
+    function renderQuickPrompts(root, inputEl, sendFn) {
+        if (!root || root.dataset.ready === '1') return;
+
+        SUGGESTIONS.slice(0, 4).forEach(text => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cunpad-chip';
+            btn.textContent = text;
+            btn.addEventListener('click', () => {
+                if (!inputEl) return;
+                inputEl.value = text;
+                inputEl.focus();
+                if (sendFn) sendFn();
+            });
+            root.appendChild(btn);
+        });
+
+        root.dataset.ready = '1';
+    }
+
+    function seedMessages(messagesEl) {
+        if (!messagesEl) return;
+        messagesEl.innerHTML = '';
+        appendMsg(messagesEl, 'bot', WELCOME_TEXT);
+    }
+
     /* ── Status message helper ───────────────────────────── */
     function setStatus(el, text, type) {
         if (!el) return; // FIX: null-guard
@@ -99,14 +143,15 @@
             return;
         }
 
+        question = normalizeQuestion(question);
         appendMsg(messagesEl, 'user', question);
         inputEl.value = '';
-        sendBtn.disabled = true;
+        setButtonBusy(sendBtn, true);
 
         const botBubble = appendMsg(messagesEl, 'bot', '', false);
-        if (!botBubble) { sendBtn.disabled = false; return; }
+        if (!botBubble) { setButtonBusy(sendBtn, false); return; }
         botBubble.classList.add('cunpad-streaming');
-        botBubble.innerHTML = '<span class="cunpad-cursor">▍</span>';
+        botBubble.innerHTML = '<span class="cunpad-typing">Mencari jawaban terbaik</span><span class="cunpad-cursor">▍</span>';
 
         let rawText = '';
 
@@ -122,7 +167,7 @@
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                if (res.status === 429) throw new Error('⚠️ Batas permintaan tercapai. Tunggu sebentar.');
+                if (res.status === 429) throw new Error('Batas permintaan tercapai. Tunggu sebentar.');
                 if (res.status === 401 || res.status === 403) throw new Error('UNAUTHORIZED');
                 throw new Error(err.error || 'Gagal terhubung ke server.');
             }
@@ -174,16 +219,16 @@
 
             if (err.message === 'UNAUTHORIZED') {
                 Token.clear();
-                botBubble.textContent = '⚠️ Sesi habis. Silakan login kembali.';
+                botBubble.textContent = 'Sesi habis. Silakan login kembali.';
                 document.getElementById('cunpad-auth-overlay')?.removeAttribute('style');
                 document.getElementById('cunpad-header')?.setAttribute('style', 'display:none');
                 document.getElementById('cunpad-content-area')?.setAttribute('style', 'display:none');
             } else {
-                botBubble.textContent = '❌ ' + (err.message || 'Terjadi kesalahan. Coba lagi.');
+                botBubble.textContent = err.message || 'Terjadi kesalahan. Coba lagi.';
             }
         } finally {
             // FIX: selalu re-enable tombol meski elemen berubah
-            if (sendBtn) sendBtn.disabled = false;
+            setButtonBusy(sendBtn, false);
             if (inputEl) inputEl.focus();
             if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
         }
@@ -196,13 +241,14 @@
             console.error('[cunpad] wireChatInput: elemen tidak ditemukan', {
                 inputEl, sendBtn, messagesEl,
             });
-            return;
+            return false;
         }
 
-        appendMsg(messagesEl, 'bot', 'Halo! Silakan ajukan pertanyaan Anda seputar Program Studi MIM FEB Unpad.');
+        seedMessages(messagesEl);
 
         const send = () => {
-            const q = inputEl.value.trim();
+            const q = normalizeQuestion(inputEl.value);
+            inputEl.value = q;
             if (!q || sendBtn.disabled) return;
             sendStreaming({
                 question:   q,
@@ -211,10 +257,22 @@
             });
         };
 
+        const promptRoot = inputEl
+            .closest('.cunpad-chat-window, .cunpad-public-widget, .cunpad-float-panel')
+            ?.querySelector('.cunpad-quick-prompts');
+        renderQuickPrompts(promptRoot, inputEl, send);
+
         sendBtn.addEventListener('click', send);
         inputEl.addEventListener('keydown', e => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
         });
+        inputEl.addEventListener('input', () => {
+            if (inputEl.value.length > MAX_QUESTION) {
+                inputEl.value = inputEl.value.slice(0, MAX_QUESTION);
+            }
+        });
+
+        return true;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -281,6 +339,9 @@
             panel.classList.contains('cunpad-hidden') ? open() : close()
         );
         closeBtn.addEventListener('click', close);
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !panel.classList.contains('cunpad-hidden')) close();
+        });
     }
 
     // ═══════════════════════════════════════════════════════
@@ -351,20 +412,21 @@
             const msgEl    = document.getElementById('cunpad-login-msg');
 
             if (!email || !password) { setStatus(msgEl, 'Email dan password wajib diisi.', 'error'); return; }
-            setStatus(msgEl, '⏳ Memproses…', 'info');
+            setStatus(msgEl, 'Memproses...', 'info');
 
             try {
                 const { ok, status, data } = await restPost('login', { email, password });
                 if (ok && data.token) {
                     Token.set(data.token, data.role);
                     show('dashboard');
+                    wireChat();
                     setStatus(msgEl, '', '');
                 } else if (status === 429) {
-                    setStatus(msgEl, '⚠️ Terlalu banyak percobaan. Tunggu sebentar.', 'error');
+                    setStatus(msgEl, 'Terlalu banyak percobaan. Tunggu sebentar.', 'error');
                 } else {
-                    setStatus(msgEl, '❌ ' + (data.error || 'Login gagal.'), 'error');
+                    setStatus(msgEl, data.error || 'Login gagal.', 'error');
                 }
-            } catch { setStatus(msgEl, '❌ Gagal terhubung ke server.', 'error'); }
+            } catch { setStatus(msgEl, 'Gagal terhubung ke server.', 'error'); }
         });
 
         /* ── REGISTER ── */
@@ -375,23 +437,23 @@
 
             if (!email || !password)  { setStatus(msgEl, 'Semua field wajib diisi.', 'error'); return; }
             if (password.length < 6)  { setStatus(msgEl, 'Password minimal 6 karakter.', 'error'); return; }
-            setStatus(msgEl, '⏳ Mendaftarkan…', 'info');
+            setStatus(msgEl, 'Mendaftarkan...', 'info');
 
             try {
                 const { ok, status, data } = await restPost('register', { email, password });
                 if (ok) {
-                    setStatus(msgEl, '✅ Akun berhasil dibuat! Silakan login.', 'success');
+                    setStatus(msgEl, 'Akun berhasil dibuat. Silakan login.', 'success');
                     setTimeout(() => {
                         document.getElementById('cunpad-register-form').style.display = 'none';
                         document.getElementById('cunpad-login-form').style.display    = '';
                         setStatus(msgEl, '', '');
                     }, 1800);
                 } else if (status === 429) {
-                    setStatus(msgEl, '⚠️ Terlalu banyak percobaan.', 'error');
+                    setStatus(msgEl, 'Terlalu banyak percobaan.', 'error');
                 } else {
-                    setStatus(msgEl, '❌ ' + (data.error || 'Registrasi gagal.'), 'error');
+                    setStatus(msgEl, data.error || 'Registrasi gagal.', 'error');
                 }
-            } catch { setStatus(msgEl, '❌ Gagal terhubung ke server.', 'error'); }
+            } catch { setStatus(msgEl, 'Gagal terhubung ke server.', 'error'); }
         });
 
         /* ── LOGOUT ── */
@@ -411,26 +473,18 @@
         let chatWired = false;
         const wireChat = () => {
             if (chatWired) return;
-            wireChatInput({
+            chatWired = wireChatInput({
                 inputEl:    document.getElementById('cunpad-chat-input'),
                 sendBtn:    document.getElementById('cunpad-chat-send'),
                 messagesEl: document.getElementById('cunpad-chat-messages'),
                 tokenFn:    Token.get,
-            });
-            chatWired = true;
+            }) === true;
         };
 
         // Jika sudah login saat load, langsung wire
         if (Token.get()) wireChat();
 
-        // FIX: patch show() agar wireChat dipanggil saat dashboard pertama kali ditampilkan
-        const _originalLoginBtn = document.getElementById('cunpad-login-btn');
-        _originalLoginBtn?.addEventListener('click', async () => {
-            // wireChat dipanggil setelah show('dashboard') berhasil
-            // Ini dilakukan via MutationObserver pada $content
-        });
-
-        // Cara paling reliable: observe display $content
+        // Wire chat when the dashboard becomes visible after login.
         const observer = new MutationObserver(() => {
             if ($content.style.display !== 'none' && $content.style.display !== '') return;
             if ($content.style.display === '') {
@@ -438,11 +492,6 @@
             }
         });
         observer.observe($content, { attributes: true, attributeFilter: ['style'] });
-
-        // Fallback: override show() untuk trigger wireChat
-        const _origShow = show;
-        // Patch login button click agar wireChat jalan setelah show('dashboard')
-        // Sudah ditangani oleh observer di atas.
 
         /* ── Submit dataset ── */
         document.getElementById('cunpad-submit-btn')?.addEventListener('click', async () => {
@@ -452,18 +501,18 @@
 
             if (!tag)          { setStatus(msgEl, 'Tag wajib diisi.', 'error'); return; }
             if (!content_text) { setStatus(msgEl, 'Konten wajib diisi.', 'error'); return; }
-            setStatus(msgEl, '⏳ Mengirim…', 'info');
+            setStatus(msgEl, 'Mengirim...', 'info');
 
             try {
                 const { ok, data } = await restPost('submission', { tag, content_text, token: Token.get() });
                 if (ok) {
-                    setStatus(msgEl, '✅ Kiriman berhasil disimpan untuk ditinjau.', 'success');
+                    setStatus(msgEl, 'Kiriman berhasil disimpan untuk ditinjau.', 'success');
                     document.getElementById('cunpad-sub-tag').value     = '';
                     document.getElementById('cunpad-sub-content').value = '';
                 } else {
-                    setStatus(msgEl, '❌ ' + (data.error || 'Gagal mengirim.'), 'error');
+                    setStatus(msgEl, data.error || 'Gagal mengirim.', 'error');
                 }
-            } catch { setStatus(msgEl, '❌ Gagal terhubung ke server.', 'error'); }
+            } catch { setStatus(msgEl, 'Gagal terhubung ke server.', 'error'); }
         });
 
         /* ── History ── */
@@ -473,30 +522,30 @@
             const listEl = document.getElementById('cunpad-history-list');
             const msgEl  = document.getElementById('cunpad-history-msg');
             listEl.innerHTML = '';
-            setStatus(msgEl, '⏳ Memuat…', 'info');
+            setStatus(msgEl, 'Memuat...', 'info');
 
             try {
                 const { ok, data } = await restGet('my-submissions', { token: Token.get() });
                 setStatus(msgEl, '', '');
 
-                if (!ok) { setStatus(msgEl, '❌ Gagal memuat histori.', 'error'); return; }
+                if (!ok) { setStatus(msgEl, 'Gagal memuat histori.', 'error'); return; }
                 if (!Array.isArray(data) || !data.length) {
                     setStatus(msgEl, 'Belum ada kiriman.', '');
                     return;
                 }
 
-                const labels = { pending: '🟡 Menunggu', accepted: '✅ Diterima', rejected: '❌ Ditolak' };
+                const labels = { pending: 'Menunggu', accepted: 'Diterima', rejected: 'Ditolak' };
                 data.forEach(item => {
                     const el = document.createElement('div');
                     el.className = 'cunpad-submission-item cunpad-status-' + item.status;
                     el.innerHTML =
                         `<strong>Tag:</strong> ${esc(item.tag)}<br>` +
-                        `<strong>Konten:</strong> ${esc((item.content_text || '').slice(0, 120))}…<br>` +
+                        `<strong>Konten:</strong> ${esc((item.content_text || '').slice(0, 120))}...<br>` +
                         `<strong>Status:</strong> <span class="cunpad-status-badge">${labels[item.status] || item.status}</span>` +
                         (item.notes ? `<br><strong>Catatan:</strong> ${esc(item.notes)}` : '');
                     listEl.appendChild(el);
                 });
-            } catch { setStatus(msgEl, '❌ Gagal terhubung ke server.', 'error'); }
+            } catch { setStatus(msgEl, 'Gagal terhubung ke server.', 'error'); }
         }
     }
 

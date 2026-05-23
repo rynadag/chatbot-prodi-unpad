@@ -1,17 +1,14 @@
 /**
- * ragHelper.js — v3.1
+ * ragHelper.js
  *
- * FIXED: replaced require() (CommonJS) with ESM-compatible dynamic import().
- * This file is part of an "type":"module" project — require() crashes at runtime.
- *
- * Changes from v2:
  *  - Supports two embedding providers: ollama (default) and openai
  *  - Promise-lock singleton (no race conditions)
- *  - Parallel batch embedding sync
+ *  - Batch embedding sync with stale-content/model detection
  *  - Elapsed-time logging
  */
 
 import mongoose from "mongoose";
+import crypto from "crypto";
 import KnowledgeSource from "../models/KnowledgeSource.js";
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 
@@ -20,27 +17,59 @@ let _cachedVectorStore = null;
 let _initPromise       = null;
 let _embedder          = null; // cached embedder instance
 
+function getEmbeddingConfig() {
+    const provider = (process.env.EMBEDDING_PROVIDER || "ollama").toLowerCase();
+    const model = provider === "openai"
+        ? (process.env.EMBEDDING_MODEL || "text-embedding-3-small")
+        : (process.env.EMBEDDING_MODEL || "nomic-embed-text");
+
+    return { provider, model };
+}
+
+function hashContent(text) {
+    return crypto
+        .createHash("sha256")
+        .update(String(text ?? "").replace(/\s+/g, " ").trim())
+        .digest("hex");
+}
+
+function needsEmbeddingSync(doc, config) {
+    return !Array.isArray(doc.embedding) ||
+        doc.embedding.length === 0 ||
+        doc.embedding_provider !== config.provider ||
+        doc.embedding_model !== config.model ||
+        doc.content_hash !== hashContent(doc.content_text);
+}
+
+async function embedTexts(embedder, texts) {
+    if (typeof embedder.embedDocuments === "function") {
+        return embedder.embedDocuments(texts);
+    }
+
+    return Promise.all(texts.map(text => embedder.embedQuery(text)));
+}
+
 // ── Embedding factory — async, lazy, ESM-safe ────────────────
 async function getEmbedder() {
     if (_embedder) return _embedder;
 
-    const provider = (process.env.EMBEDDING_PROVIDER || "ollama").toLowerCase();
+    const { provider, model } = getEmbeddingConfig();
 
     if (provider === "openai") {
         const { OpenAIEmbeddings } = await import("@langchain/openai");
         _embedder = new OpenAIEmbeddings({
             apiKey: process.env.OPENAI_API_KEY,
-            model:  process.env.EMBEDDING_MODEL || "text-embedding-3-small",
+            model,
         });
     } else {
         const { OllamaEmbeddings } = await import("@langchain/ollama");
         _embedder = new OllamaEmbeddings({
             baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
-            model:   process.env.EMBEDDING_MODEL || "nomic-embed-text",
+            model,
         });
     }
 
-    console.log(`✅ Embedder siap: ${provider}`);
+    console.log(`✅ Embedder siap: ${provider} / ${model}`);
     return _embedder;
 }
 
@@ -52,13 +81,11 @@ export async function syncEmbeddingsToAtlas() {
     const t0 = Date.now();
     console.log("🔄 Mengecek sinkronisasi embedding...");
 
-    const sources = await KnowledgeSource.find({
-        $or: [
-            { embedding: { $exists: false } },
-            { embedding: { $size: 0 } },
-            { embedding: null },
-        ],
-    }).lean();
+    const config = getEmbeddingConfig();
+    const allSources = await KnowledgeSource.find({})
+        .select("tag content_text embedding embedding_provider embedding_model content_hash")
+        .lean();
+    const sources = allSources.filter(doc => needsEmbeddingSync(doc, config));
 
     if (!sources.length) {
         console.log("✅ Semua data sudah memiliki embedding. Lewati sinkronisasi.");
@@ -82,9 +109,7 @@ export async function syncEmbeddingsToAtlas() {
 
         let vectors;
         try {
-            vectors = await Promise.all(
-                batch.map(doc => embedder.embedQuery(doc.content_text))
-            );
+            vectors = await embedTexts(embedder, batch.map(doc => doc.content_text));
         } catch (e) {
             console.error(`❌ Gagal embed batch ${i / BATCH + 1}:`, e.message);
             throw e;
@@ -94,7 +119,15 @@ export async function syncEmbeddingsToAtlas() {
             batch.map((doc, idx) =>
                 KnowledgeSource.updateOne(
                     { _id: doc._id },
-                    { $set: { embedding: vectors[idx], last_compiled: new Date() } }
+                    {
+                        $set: {
+                            embedding: vectors[idx],
+                            last_compiled: new Date(),
+                            embedding_provider: config.provider,
+                            embedding_model: config.model,
+                            content_hash: hashContent(doc.content_text),
+                        },
+                    }
                 )
             )
         );
@@ -141,16 +174,22 @@ async function _init() {
             await mongoose.connection.asPromise();
         }
 
-        const collection = mongoose.connection
-            .getClient()
-            .db("test")
-            .collection("knowledgesources");
+        const dbName = process.env.MONGO_DB_NAME || mongoose.connection.db?.databaseName;
+        const db = dbName
+            ? mongoose.connection.getClient().db(dbName)
+            : mongoose.connection.db;
+
+        if (!db) {
+            throw new Error("Database MongoDB belum siap.");
+        }
+
+        const collection = db.collection(KnowledgeSource.collection.name);
 
         const embedder = await getEmbedder();
 
         const vectorStore = new MongoDBAtlasVectorSearch(embedder, {
             collection,
-            indexName:    "vector_index",
+            indexName:    process.env.MONGO_VECTOR_INDEX || process.env.ATLAS_VECTOR_INDEX || "vector_index",
             textKey:      "content_text",
             embeddingKey: "embedding",
         });

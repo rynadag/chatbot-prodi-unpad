@@ -88,6 +88,9 @@ router.put("/:id", protect, isAdmin, async (req, res) => {
                 {
                     content_text: updatedSubmission.content_text,
                     embedding: [], // Wajib dikosongkan agar nanti di-embed ulang
+                    embedding_provider: null,
+                    embedding_model: null,
+                    content_hash: null,
                 },
                 { upsert: true, runValidators: true }
             );
