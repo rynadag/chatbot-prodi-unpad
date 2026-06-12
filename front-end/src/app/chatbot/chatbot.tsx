@@ -1,0 +1,772 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import {
+  Send,
+  Loader2,
+  RefreshCw,
+  Copy,
+  Check,
+  Sun,
+  Moon,
+  Languages,
+  FileText,
+} from 'lucide-react';
+
+// --- LIBRARY MARKDOWN & HTML PARSER ---
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+
+// ------------------------------------------------------------
+// TYPE DEFINITIONS
+// ------------------------------------------------------------
+interface Message {
+  sender: 'bot' | 'user';
+  text: string;
+  sources?: ChatSource[];
+}
+
+interface ChatSource {
+  id?: string;
+  tag?: string;
+  topic?: string; // backward compat
+  category?: string;
+}
+
+interface CodeBlockProps extends React.HTMLAttributes<HTMLElement> {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+interface CategoryStructure {
+  _id: string; 
+  topics: string[]; 
+}
+
+type ChatLanguage = 'id' | 'en';
+
+// ------------------------------------------------------------
+// HELPERS
+// ------------------------------------------------------------
+function generateTabId(): string {
+  try {
+    if (
+      typeof window !== 'undefined' &&
+      window.crypto &&
+      'randomUUID' in window.crypto
+    ) {
+      return window.crypto.randomUUID();
+    }
+  } catch {
+    // ignore
+  }
+  return `tab-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function safeJsonParse(s: string) {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+// ------------------------------------------------------------
+// INITIAL DATA
+// ------------------------------------------------------------
+const LANGUAGE_COPY: Record<ChatLanguage, {
+  initialMessage: string;
+  languageLabel: string;
+  languageTitle: string;
+  disconnected: string;
+  privacySavedOff: string;
+  verificationFailed: (message: string) => string;
+  topicsUserMessage: string;
+  topicsIntro: string;
+  topicsEmpty: string;
+  topicsHint: string;
+  topicsFetchFailed: string;
+  suggestion: string;
+  viewTopics: string;
+  inputPlaceholder: string;
+  captchaPlaceholder: string;
+  captchaMissing: string;
+  disclaimer: string;
+  sourceLabel: string;
+}> = {
+  id: {
+    initialMessage:
+      'Halo! Saya asisten virtual prodi. Ada yang bisa saya bantu?',
+    languageLabel: 'Bahasa',
+    languageTitle: 'Ganti bahasa respons',
+    disconnected: '⚠️ Gagal terhubung ke server. Silakan refresh halaman.',
+    privacySavedOff: 'Riwayat sesi ini tidak akan disimpan.',
+    verificationFailed: (message: string) => `⚠️ Error: ${message}`,
+    topicsUserMessage: 'Tampilkan list topik',
+    topicsIntro: 'Berikut adalah daftar topik yang tersedia:\n\n',
+    topicsEmpty: 'Maaf, belum ada topik yang tersedia saat ini.',
+    topicsHint: '\n*Ketik salah satu topik di atas untuk detail.*',
+    topicsFetchFailed: '⚠️ Gagal memuat daftar topik.',
+    suggestion: 'Bingung ingin bertanya apa? Lihat daftar topik yang tersedia.',
+    viewTopics: 'Lihat Topik',
+    inputPlaceholder: 'Ketik pertanyaan Anda di sini...',
+    captchaPlaceholder: 'Selesaikan verifikasi di atas...',
+    captchaMissing: '⚠️ Konfigurasi ReCAPTCHA belum tersedia.',
+    disclaimer: 'AI dapat membuat kesalahan. Verifikasi informasi penting.',
+    sourceLabel: 'Sumber',
+  },
+  en: {
+    initialMessage:
+      "Hello! I'm an Academic Assistant from the International Office. How can I help you with campus information, scholarships, or academic procedures?",
+    languageLabel: 'Language',
+    languageTitle: 'Change response language',
+    disconnected: '⚠️ Connection to the server was lost. Please refresh the page.',
+    privacySavedOff: 'This session history will not be saved for AI training.',
+    verificationFailed: (message) => `⚠️ Verification failed: ${message}. Please refresh.`,
+    topicsUserMessage: 'Show available topics',
+    topicsIntro: 'Here are the available topics:\n\n',
+    topicsEmpty: 'Sorry, there are no topics available right now.',
+    topicsHint: '\n*Please type one of the topics above for more detail.*',
+    topicsFetchFailed: '⚠️ Sorry, failed to load topics. Please try again.',
+    suggestion: 'Not sure what to ask? Check out the available topics.',
+    viewTopics: 'View Topics',
+    inputPlaceholder: 'Type your question here...',
+    captchaPlaceholder: 'Complete the verification above...',
+    captchaMissing: '⚠️ ReCAPTCHA configuration is missing.',
+    disclaimer: 'AI can make mistakes. Please verify important information before using it.',
+    sourceLabel: 'Sources',
+  },
+};
+
+const getInitialMessages = (language: ChatLanguage): Message[] => [
+  { sender: 'bot', text: LANGUAGE_COPY[language].initialMessage },
+];
+
+const initialMessages: Message[] = getInitialMessages('id');
+
+function normalizeSources(value: unknown): ChatSource[] {
+  if (!Array.isArray(value)) return [];
+  return value.reduce<ChatSource[]>((sources, item) => {
+    if (!item || typeof item !== 'object') return sources;
+    const record = item as Record<string, unknown>;
+    const tag   = typeof record.tag   === 'string' ? record.tag.trim()   : '';
+    const topic = typeof record.topic === 'string' ? record.topic.trim() : '';
+    const label = tag || topic;
+    if (!label) return sources;
+    sources.push({ tag: label, topic: label, id: typeof record.id === 'string' ? record.id : undefined });
+    return sources;
+  }, []);
+}
+
+export default function Chatbot() {
+  // ── State ──────────────────────────────────────────────────
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const messagesEndRef          = useRef<HTMLDivElement | null>(null);
+
+  // Theme
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [mounted, setMounted]       = useState(false);
+  const [language, setLanguage]     = useState<ChatLanguage>('id');
+
+  // Copy feedback
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // Topic suggestion
+  const [showTopicSuggestion, setShowTopicSuggestion] = useState(false);
+
+  // SSE abort controller
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Session ID untuk tracking history (ref only - tidak perlu re-render)
+  const sessionIdRef = useRef<string | null>(null);
+
+  // ------------------------------------------------------------
+  // THEME LOGIC
+  // ------------------------------------------------------------
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedLanguage =
+      localStorage.getItem('chat-language') === 'en' ? 'en' : 'id';
+
+    setLanguage(savedLanguage);
+    setMessages(getInitialMessages(savedLanguage));
+
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const handleLanguageChange = (nextLanguage: ChatLanguage) => {
+    setLanguage(nextLanguage);
+    localStorage.setItem('chat-language', nextLanguage);
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0]?.sender === 'bot') {
+        return getInitialMessages(nextLanguage);
+      }
+      return prev;
+    });
+  };
+
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDarkMode(true);
+    }
+  };
+
+  // ── Theme ──────────────────────────────────────────────────
+  // ── SSE: Send & Stream ────────────────────────────────────
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+
+    const userMsg = input.trim();
+    setInput('');
+    setShowTopicSuggestion(false);
+    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setLoading(true);
+
+    // Add empty bot message for streaming
+    setMessages(prev => [...prev, { sender: 'bot', text: '' }]);
+
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionIdRef.current) headers['x-session-id'] = sessionIdRef.current;
+
+      const res = await fetch('http://localhost:3000/api/public-chat/stream', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ question: userMsg }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error('Gagal terhubung ke server chatbot.');
+      }
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer    = '';
+      let fullText  = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const jsonStr = trimmed.slice(5).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const data = JSON.parse(jsonStr);
+            if (data.sessionId && !sessionIdRef.current) {
+              sessionIdRef.current = data.sessionId;
+            }
+            if (data.token) {
+              fullText += data.token;
+              setMessages(prev => {
+                const arr = [...prev];
+                if (arr.length > 0) {
+                  arr[arr.length - 1] = { sender: 'bot', text: fullText };
+                }
+                return arr;
+              });
+            }
+            if (data.done || data.error) {
+              setLoading(false);
+            }
+          } catch { /* skip malformed JSON */ }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setMessages(prev => {
+          const arr = [...prev];
+          if (arr.length > 0 && arr[arr.length - 1].sender === 'bot') {
+            arr[arr.length - 1] = { sender: 'bot', text: '⚠️ Terjadi kesalahan. Coba lagi.' };
+          }
+          return arr;
+        });
+      }
+      setLoading(false);
+    }
+  };
+
+  // ── Copy ─────────────────────────────────────────────────────
+
+  const handleCopyMessage = (text: string, index: number) => {
+    const cleanText = text.replace(/<[^>]*>?/gm, '');
+    navigator.clipboard.writeText(cleanText);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  // ── Topics Fetch ──────────────────────────────────────────────
+  const handleRequestTopics = async () => {
+    const copy = LANGUAGE_COPY[language];
+    setShowTopicSuggestion(false);
+    const userMsg = copy.topicsUserMessage;
+    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:3000/api/admin/data', {});
+      if (!res.ok) throw new Error();
+      const items = await res.json();
+      const tags: string[] = items.map((i: { tag: string }) => i.tag);
+      const botResponse = tags.length === 0
+        ? copy.topicsEmpty
+        : `${copy.topicsIntro}${tags.map(t => `- ${t}`).join('\n')}${copy.topicsHint}`;
+      setMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
+    } catch {
+      setMessages(prev => [...prev, { sender: 'bot', text: copy.topicsFetchFailed }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleRetry = async () => {
+    if (loading) return;
+    const lastUser = [...messages].reverse().find(m => m.sender === 'user');
+    if (!lastUser) return;
+
+    setMessages(prev => {
+      const arr = [...prev];
+      if (arr.length > 0 && arr[arr.length - 1].sender === 'bot') arr.pop();
+      return arr;
+    });
+
+    setInput(lastUser.text);
+    await handleSend();
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Cleanup SSE on unmount
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
+
+  // ------------------------------------------------------------
+  // CODE BLOCK COMPONENT
+  // ------------------------------------------------------------
+  const CodeBlock = ({ inline, className, children, ...props }: CodeBlockProps) => {
+    const [copied, setCopied] = useState(false);
+    const match = /language-(\w+)/.exec(className || '');
+
+    const handleCopyCode = () => {
+      navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (!inline) {
+      return (
+        <div className='relative group my-4 rounded-lg overflow-hidden border bg-black/5 dark:bg-black/30' style={{ borderColor: 'var(--border)' }}>
+          <div className='flex justify-between items-center px-4 py-2 bg-black/5 dark:bg-white/5 border-b' style={{borderColor: 'var(--border)'}}>
+            <span className='text-xs font-mono opacity-70'>
+              {match ? match[1] : 'text'}
+            </span>
+            <button
+              onClick={handleCopyCode}
+              className='p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors'
+              title='Copy Code'
+            >
+              {copied ? <Check className='w-3.5 h-3.5 text-green-500' /> : <Copy className='w-3.5 h-3.5 opacity-70' />}
+            </button>
+          </div>
+          <div className='p-4 overflow-x-auto text-sm font-mono' style={{ color: 'var(--foreground)' }}>
+            <code className={className} {...props}>
+              {children}
+            </code>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <code
+        className='px-1.5 py-0.5 rounded text-sm font-mono bg-black/10 dark:bg-white/10'
+        style={{ color: 'var(--foreground)' }}
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  };
+
+  if (!mounted) return null;
+
+  // ------------------------------------------------------------
+  // UI RENDER (full UI kept as before)
+  // ------------------------------------------------------------
+  return (
+    <section className='min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans transition-colors duration-300'>
+      {/* MAIN CHAT CONTAINER */}
+      <div
+        className='w-full max-w-5xl glass-card flex flex-col h-[85vh] overflow-hidden shadow-2xl relative'
+        style={{ 
+            borderColor: 'var(--border)', 
+            borderWidth: '1px',
+            boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.25)' 
+        }}
+      >
+        {/* HEADER */}
+        <header
+          className='flex items-center justify-between px-6 py-4 border-b backdrop-blur-xl z-10'
+          style={{
+            borderColor: 'var(--border)',
+            background:
+              'linear-gradient(to right, rgba(255,255,255,0.4), rgba(255,255,255,0.1))',
+          }}
+        >
+          <div className='flex items-center gap-4'>
+            <div className='relative'>
+              <div
+                className='w-11 h-11 rounded-xl shadow-lg flex items-center justify-center overflow-hidden bg-white relative'
+                style={{ border: '1px solid var(--border)' }}
+              >
+                <Image
+                  src='/Logo1.jpg'
+                  alt='Bot Logo'
+                  fill
+                  sizes='44px'
+                  className='object-contain p-1'
+                />
+              </div>
+              <div className='absolute -bottom-1 -right-1 flex h-3.5 w-3.5'>
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    loading ? 'bg-amber-400' : 'bg-emerald-400'
+                  }`}
+                ></span>
+                <span
+                  className={`relative inline-flex rounded-full h-3.5 w-3.5 border-2 border-white dark:border-gray-900 ${
+                    loading ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}
+                ></span>
+              </div>
+            </div>
+            <div>
+              <h1 className='text-lg font-bold tracking-tight' style={{ color: 'var(--foreground)' }}>
+                Asisten Prodi
+              </h1>
+              <p
+                className='text-xs font-medium opacity-70 flex items-center gap-1.5'
+                style={{ color: 'var(--foreground)' }}
+              >
+                <span className='w-1.5 h-1.5 rounded-full bg-current opacity-50'></span>{' '}
+                Universitas Padjadjaran
+              </p>
+            </div>
+          </div>
+          <div className='flex items-center gap-2'>
+            <div
+              className='flex items-center gap-1 rounded-full border p-1'
+              style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              title={LANGUAGE_COPY[language].languageTitle}
+              aria-label={LANGUAGE_COPY[language].languageLabel}
+            >
+              <Languages className='w-4 h-4 opacity-70 ml-1' />
+              {(['id', 'en'] as ChatLanguage[]).map((item) => {
+                const isSelected = language === item;
+                return (
+                  <button
+                    key={item}
+                    type='button'
+                    onClick={() => handleLanguageChange(item)}
+                    className='min-w-9 px-2 py-1 rounded-full text-[11px] font-bold transition-colors'
+                    style={{
+                      background: isSelected ? 'var(--primary)' : 'transparent',
+                      color: isSelected ? 'var(--primary-foreground)' : 'var(--foreground)',
+                    }}
+                    aria-pressed={isSelected}
+                  >
+                    {item.toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-all border border-transparent hover:border-border"
+              title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            >
+              {isDarkMode ? (
+                <Sun className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
+              ) : (
+                <Moon className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* CHAT AREA */}
+        <div className='flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 scroll-smooth custom-scrollbar'>
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex gap-4 group ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+            >
+              <div
+                className='shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-md border overflow-hidden relative bg-white'
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <Image
+                  src={msg.sender === 'user' ? '/Logo.jpg' : '/Logo1.jpg'}
+                  alt={msg.sender}
+                  fill
+                  sizes='40px'
+                  className='object-contain p-0.5'
+                />
+              </div>
+              <div
+                className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${
+                  msg.sender === 'user' ? 'items-end' : 'items-start'
+                }`}
+              >
+                <div
+                  className={`px-5 py-4 rounded-2xl text-sm leading-relaxed shadow-sm relative ${
+                      msg.sender === 'user' 
+                      ? 'rounded-tr-none text-white' 
+                      : 'rounded-tl-none border'
+                  }`}
+                  style={
+                    msg.sender === 'user'
+                      ? { 
+                          background: 'linear-gradient(135deg, var(--primary), var(--accent))', 
+                          color: 'var(--primary-foreground)',
+                          boxShadow: '0 4px 15px -3px rgba(0,0,0,0.1)'
+                        }
+                      : { 
+                          background: 'var(--card-bg)', 
+                          color: 'var(--foreground)', 
+                          borderColor: 'var(--border)' 
+                        }
+                  }
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      table: ({ ...props }) => (
+                        <div className='overflow-x-auto my-3 border rounded-lg bg-black/5 dark:bg-white/5' style={{ borderColor: 'var(--border)' }}>
+                          <table className='min-w-full divide-y text-left text-xs' style={{ borderColor: 'var(--border)' }} {...props} />
+                        </div>
+                      ),
+                      thead: ({ ...props }) => <thead className='bg-black/5 dark:bg-white/5' {...props} />,
+                      th: ({ ...props }) => <th className='px-3 py-2 font-semibold opacity-80' {...props} />,
+                      tbody: ({ ...props }) => <tbody className='divide-y' style={{ borderColor: 'var(--border)' }} {...props} />,
+                      td: ({ ...props }) => <td className='px-3 py-2 whitespace-pre-wrap align-top' {...props} />,
+                      a: (props) => (
+                        <a {...props} target='_blank' rel='noopener noreferrer' className="underline underline-offset-2 font-semibold opacity-90 hover:opacity-100" />
+                      ),
+                      p: (props) => <p className='mb-2 last:mb-0' {...props} />,
+                      ul: (props) => <ul className='list-disc ml-4 mb-2 space-y-1' {...props} />,
+                      ol: (props) => <ol className='list-decimal ml-4 mb-2 space-y-1' {...props} />,
+                      li: (props) => <li className='pl-1' {...props} />,
+                      strong: (props) => <strong className='font-bold' {...props} />,
+                      h1: (props) => <h1 className='text-lg font-bold mt-2 mb-2' {...props} />,
+                      h2: (props) => <h2 className='text-base font-bold mt-2 mb-2' {...props} />,
+                      h3: (props) => <h3 className='text-sm font-bold mt-2 mb-1' {...props} />,
+                      code: CodeBlock as React.ComponentType<CodeBlockProps>,
+                      blockquote: (props) => (
+                        <blockquote
+                          className='border-l-4 pl-4 py-1 my-2 italic opacity-80'
+                          style={{ borderColor: 'currentColor', background: 'rgba(255,255,255,0.1)' }}
+                          {...props}
+                        />
+                      ),
+                    }}
+                  >
+                    {typeof msg.text === 'string' ? msg.text : String(msg.text || '')}
+                  </ReactMarkdown>
+                </div>
+
+                {msg.sender === 'bot' && msg.sources && msg.sources.length > 0 && (
+                  <div className='mt-2 ml-1 flex max-w-full flex-wrap items-center gap-2'>
+                    <span
+                      className='inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide opacity-70'
+                      style={{ color: 'var(--foreground)' }}
+                    >
+                      <FileText className='h-3 w-3' />
+                      {LANGUAGE_COPY[language].sourceLabel}
+                    </span>
+                    {msg.sources.slice(0, 4).map((source, sourceIndex) => (
+                      <span
+                        key={`${source.id || source.topic}-${source.category || 'general'}-${sourceIndex}`}
+                        className='inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-sm'
+                        style={{
+                          borderColor: 'var(--border)',
+                          background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.72)',
+                          color: 'var(--foreground)',
+                        }}
+                        title={source.category ? `${source.topic} - ${source.category}` : source.topic}
+                      >
+                        <span className='max-w-[13rem] truncate'>{source.tag || source.topic}</span>
+                        {source.category && source.category !== 'General' && (
+                          <span
+                            className='rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase opacity-75'
+                            style={{ background: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
+                          >
+                            {source.category}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {msg.sender === 'bot' && (
+                  <div className='flex items-center gap-3 mt-2 ml-1'>
+                    <button
+                      onClick={() => handleCopyMessage(msg.text, i)}
+                      className='flex items-center gap-1 text-[10px] font-medium hover:text-emerald-500 transition-colors'
+                      style={{ color: copiedIndex === i ? '#10B981' : 'var(--muted-foreground)' }}
+                    >
+                      {copiedIndex === i ? <Check className='w-3 h-3' /> : <Copy className='w-3 h-3' />}
+                      <span>{copiedIndex === i ? 'Copied' : 'Copy'}</span>
+                    </button>
+                    {i === messages.length - 1 && !loading && (
+                      <button
+                        onClick={handleRetry}
+                        className='flex items-center gap-1 text-[10px] font-medium hover:text-amber-500 transition-colors'
+                        style={{ color: 'var(--muted-foreground)' }}
+                      >
+                        <RefreshCw className='w-3 h-3' />
+                        <span>Regenerate</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className='flex gap-4 animate-pulse'>
+              <div className='w-10 h-10 rounded-full border flex items-center justify-center bg-white overflow-hidden relative' style={{ borderColor: 'var(--border)' }}>
+                 <Image 
+                    src="/Logo1.jpg" 
+                    alt="Bot Loading" 
+                    fill
+                    sizes="40px"
+                    className="object-contain p-0.5" 
+                 />
+              </div>
+              <div className='px-5 py-4 rounded-2xl rounded-tl-none border flex items-center gap-2' style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+                <span className='w-2 h-2 rounded-full animate-bounce' style={{ background: 'var(--primary)' }}></span>
+                <span className='w-2 h-2 rounded-full animate-bounce delay-150' style={{ background: 'var(--primary)', opacity: 0.7 }}></span>
+                <span className='w-2 h-2 rounded-full animate-bounce delay-300' style={{ background: 'var(--primary)', opacity: 0.4 }}></span>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* FOOTER INPUT AREA */}
+        <div
+          className='p-5 border-t backdrop-blur-md'
+          style={{
+            borderColor: 'var(--border)',
+            background:
+              'linear-gradient(to top, var(--card-bg), rgba(255,255,255,0.0))',
+          }}
+        >
+          {showTopicSuggestion && !loading && (
+            <div className='flex items-center justify-between bg-black/5 dark:bg-white/5 px-4 py-2 rounded-lg mb-4 border border-transparent hover:border-border transition-colors'>
+              <div className='flex items-center gap-2 text-xs sm:text-sm opacity-80' style={{ color: 'var(--foreground)' }}>
+                <span>💡</span>
+                <span>{LANGUAGE_COPY[language].suggestion}</span>
+              </div>
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={handleRequestTopics}
+                  className='text-xs font-bold px-3 py-1.5 rounded-md hover:opacity-80 transition-opacity'
+                  style={{ background: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
+                >
+                  {LANGUAGE_COPY[language].viewTopics}
+                </button>
+                <button onClick={() => setShowTopicSuggestion(false)} className='p-1 hover:bg-black/10 rounded-full transition-colors text-xs opacity-60'>
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className='relative flex items-center max-w-4xl mx-auto'>
+            <input
+              type='text'
+              placeholder={LANGUAGE_COPY[language].inputPlaceholder}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              disabled={loading}
+              className='w-full pl-6 pr-14 py-4 rounded-full outline-none text-sm transition-all shadow-inner focus:ring-2'
+              style={
+                {
+                  background: isDarkMode
+                    ? 'rgba(0,0,0,0.3)'
+                    : 'rgba(255,255,255,0.8)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
+                } as React.CSSProperties
+              }
+            />
+            <div className='absolute right-2'>
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || loading}
+                className='p-2.5 rounded-full hover:scale-105 active:scale-95 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed'
+                style={{
+                  background: input.trim() ? 'var(--primary)' : 'var(--muted)',
+                  color: input.trim() ? 'var(--primary-foreground)' : 'var(--muted-foreground)'
+                }}
+              >
+                {loading ? (
+                  <Loader2 className='w-5 h-5 animate-spin' />
+                ) : (
+                  <Send className='w-5 h-5 ml-0.5' />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <p
+            className='text-[10px] text-center mt-3 opacity-60 font-medium'
+            style={{ color: 'var(--foreground)' }}
+          >
+            {LANGUAGE_COPY[language].disclaimer}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
