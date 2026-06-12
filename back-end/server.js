@@ -1,0 +1,100 @@
+import "dotenv/config";
+import express   from "express";
+import mongoose  from "mongoose";
+import cors      from "cors";
+import rateLimit from "express-rate-limit";
+
+import authRoutes       from "./routes/auth.js";
+import adminRoutes      from "./routes/admin.js";
+import chatRoutes       from "./routes/chat.js";
+import submissionRoutes from "./routes/Submission.js";
+import publicChatRoutes from "./routes/publicChat.js";
+
+import { syncEmbeddingsToAtlas } from "./utils/ragHelper.js";
+
+const app  = express();
+const PORT = parseInt(process.env.PORT ?? "3000", 10);
+
+// ── Prodi identity ────────────────────────────────────────────
+const PRODI_NAME   = process.env.PRODI_NAME          || "Program Studi";
+const FACULTY_NAME = process.env.FACULTY_NAME         || "Fakultas";
+const UNIV_ABBREV  = process.env.UNIV_ABBREVIATION    || "Unpad";
+
+// ── CORS ──────────────────────────────────────────────────────
+// Set WORDPRESS_URL di .env untuk membatasi origin di production.
+// Contoh: WORDPRESS_URL=https://prodi.feb.unpad.ac.id
+const allowedOrigins = process.env.WORDPRESS_URL
+    ? [process.env.WORDPRESS_URL]
+    : true; // izinkan semua di development
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json({ limit: "1mb" }));
+
+// ── Rate limiting ─────────────────────────────────────────────
+// Global: 200 req / 15 menit per IP
+app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Terlalu banyak permintaan. Coba lagi nanti." },
+}));
+
+// Chat-specific: 30 req / 15 menit (mencegah abuse LLM API)
+const chatLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: { error: "Batas permintaan chat tercapai. Tunggu beberapa menit." },
+});
+
+// ── Routes ────────────────────────────────────────────────────
+app.use("/api/auth",        authRoutes);
+app.use("/api/admin",       adminRoutes);
+app.use("/api/chat",        chatLimiter, chatRoutes);
+app.use("/api/submission",  submissionRoutes);
+app.use("/api/public-chat", chatLimiter, publicChatRoutes);
+
+// ── Utility endpoints ─────────────────────────────────────────
+app.get("/", (_req, res) =>
+    res.send(`🚀 Chatbot ${PRODI_NAME} ${FACULTY_NAME} ${UNIV_ABBREV} berjalan!`)
+);
+
+app.get("/health", (_req, res) => {
+    const states = ["disconnected", "connected", "connecting", "disconnecting"];
+    res.json({
+        status:    "ok",
+        prodi:     PRODI_NAME,
+        faculty:   FACULTY_NAME,
+        db:        states[mongoose.connection.readyState] ?? "unknown",
+        llm:       process.env.LLM_PROVIDER ?? "groq",
+        embedding: process.env.EMBEDDING_PROVIDER ?? "ollama",
+        uptime:    Math.round(process.uptime()) + "s",
+    });
+});
+
+// ── Global error handler ──────────────────────────────────────
+app.use((err, _req, res, _next) => {
+    console.error("❌ Unhandled error:", err);
+    res.status(500).json({ error: "Terjadi kesalahan server." });
+});
+
+// ── DB connection → start ─────────────────────────────────────
+mongoose
+    .connect(process.env.MONGO_URI, { ssl: true })
+    .then(async () => {
+        console.log("✅ Connected to MongoDB Atlas");
+        console.log(`📚 Prodi: ${PRODI_NAME} ${FACULTY_NAME} ${UNIV_ABBREV}`);
+
+        // Non-blocking embedding sync — server starts immediately
+        syncEmbeddingsToAtlas().catch(err =>
+            console.error("⚠️ Background embedding sync gagal:", err)
+        );
+
+        app.listen(PORT, () =>
+            console.log(`🚀 Server running → http://localhost:${PORT}`)
+        );
+    })
+    .catch(err => {
+        console.error("❌ Gagal koneksi ke MongoDB Atlas:", err);
+        process.exit(1);
+    });
