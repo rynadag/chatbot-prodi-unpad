@@ -76,15 +76,22 @@ export default function LoginPage() {
     <section className='min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden '>
       {/* --- CSS HACK UNTUK MENGATASI WARNA AUTOFILL BROWSER --- */}
       <style jsx global>{`
-        /* Mengubah warna teks autofill menjadi putih */
+        /* Light mode autofill styles */
         input:-webkit-autofill,
         input:-webkit-autofill:hover,
         input:-webkit-autofill:focus,
         input:-webkit-autofill:active {
-          -webkit-text-fill-color: white !important;
-          /* Transisi background sangat lama agar warna asli browser tidak muncul */
+          -webkit-text-fill-color: #1e293b !important;
           transition: background-color 5000s ease-in-out 0s;
-          /* Fallback shadow untuk menutup background putih default jika transisi gagal di beberapa browser */
+          -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.9) inset !important;
+          background-color: rgba(255, 255, 255, 0.9) !important;
+        }
+        /* Dark mode autofill styles */
+        .dark input:-webkit-autofill,
+        .dark input:-webkit-autofill:hover,
+        .dark input:-webkit-autofill:focus,
+        .dark input:-webkit-autofill:active {
+          -webkit-text-fill-color: white !important;
           -webkit-box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.2) inset !important;
           background-color: rgba(0, 0, 0, 0.2) !important;
         }
@@ -105,18 +112,11 @@ export default function LoginPage() {
       <div className='absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-teal-600/20 rounded-full blur-[100px] opacity-30 pointer-events-none transform -translate-x-1/2 -translate-y-1/2' />
 
       {/* GLASS CARD CONTAINER */}
-      <div
-        className='w-full max-w-md p-8 sm:p-10 rounded-3xl border flex flex-col items-center relative z-10 backdrop-blur-2xl shadow-2xl'
-        style={{
-          background: 'rgba(255, 255, 255, 0.03)', // Sangat transparan
-          borderColor: 'rgba(255, 255, 255, 0.08)', // Border halus
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', // Shadow dalam
-        }}
-      >
+      <div className='w-full max-w-md p-8 sm:p-10 rounded-3xl glass-card flex flex-col items-center relative z-10'>
         {/* LOGO AREA */}
         <div className='mb-6 relative group'>
           <div className='absolute inset-0 bg-white/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500'></div>
-          <div className='relative w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden bg-white/10 border border-white/10 backdrop-blur-md shadow-inner'>
+          <div className='relative w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 backdrop-blur-md shadow-md'>
             <Image
               src='/Logo1.jpg'
               alt='Admin Logo'
@@ -129,11 +129,11 @@ export default function LoginPage() {
 
         {/* HEADER TEXT */}
         <div className='text-center mb-10'>
-          <h1 className='text-3xl font-bold tracking-tight text-white mb-2 drop-shadow-md'>
+          <h1 className='text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-200 mb-2'>
             Admin Portal
           </h1>
-          <p className='text-sm text-gray-300 font-medium opacity-80'>
-            Masuk untuk mengakses dashboard prodi.
+          <p className='text-sm text-slate-600 dark:text-slate-400 font-medium'>
+            Masuk untuk mengakses dashboard program studi.
           </p>
         </div>
 
@@ -143,12 +143,12 @@ export default function LoginPage() {
           <div className='space-y-2'>
             <label
               htmlFor='email'
-              className='text-xs font-semibold text-white/80 ml-1 tracking-wide uppercase'
+              className='text-xs font-semibold text-slate-700 dark:text-slate-300 ml-1 tracking-wide uppercase'
             >
               Email
             </label>
             <div className='relative group'>
-              <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/50 group-focus-within:text-blue-400 transition-colors'>
+              <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors'>
                 <User className='w-5 h-5' />
               </div>
               <input
@@ -158,12 +158,8 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className='block w-full pl-11 pr-4 py-3.5 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all shadow-inner'
-                placeholder='admin@prodi.unpad.ac.id'
-                style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
+                className='block w-full pl-11 pr-4 py-3.5 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-transparent transition-all shadow-inner bg-white/60 dark:bg-white/10 border border-slate-200 dark:border-white/10 focus:bg-white/80 dark:focus:bg-white/20'
+                placeholder='admin@programstudi.unpad.ac.id'
               />
             </div>
           </div>
@@ -172,12 +168,12 @@ export default function LoginPage() {
           <div className='space-y-2'>
             <label
               htmlFor='password'
-              className='text-xs font-semibold text-white/80 ml-1 tracking-wide uppercase'
+              className='text-xs font-semibold text-slate-700 dark:text-slate-300 ml-1 tracking-wide uppercase'
             >
               Password
             </label>
             <div className='relative group'>
-              <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/50 group-focus-within:text-blue-400 transition-colors'>
+              <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors'>
                 <Lock className='w-5 h-5' />
               </div>
               <input
@@ -187,17 +183,13 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className='block w-full pl-11 pr-12 py-3.5 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all shadow-inner'
+                className='block w-full pl-11 pr-12 py-3.5 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-transparent transition-all shadow-inner bg-white/60 dark:bg-white/10 border border-slate-200 dark:border-white/10 focus:bg-white/80 dark:focus:bg-white/20'
                 placeholder='••••••••'
-                style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.25)', // Sama dengan username
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
               />
               <button
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
-                className='absolute inset-y-0 right-0 flex items-center pr-4 text-white/40 hover:text-white transition-colors'
+                className='absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 transition-colors'
                 title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
               >
                 {showPassword ? (
@@ -211,8 +203,8 @@ export default function LoginPage() {
 
           {/* ERROR MESSAGE */}
           {error && (
-            <div className='p-3 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center animate-in fade-in slide-in-from-top-2'>
-              <span className='text-red-200 text-sm font-medium'>{error}</span>
+            <div className='p-3 rounded-lg bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 flex items-center justify-center animate-in fade-in slide-in-from-top-2'>
+              <span className='text-red-600 dark:text-red-200 text-sm font-medium'>{error}</span>
             </div>
           )}
 
@@ -240,8 +232,8 @@ export default function LoginPage() {
 
         {/* FOOTER TEXT */}
         <div className='mt-8 text-center'>
-          <p className='text-[10px] uppercase tracking-widest text-white/30 font-semibold'>
-            © {new Date().getFullYear()} Chatbot Prodi Unpad
+          <p className='text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-semibold'>
+            © {new Date().getFullYear()} Chatbot Program Studi Unpad
           </p>
         </div>
       </div>

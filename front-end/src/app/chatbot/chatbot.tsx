@@ -101,7 +101,7 @@ const LANGUAGE_COPY: Record<ChatLanguage, {
 }> = {
   id: {
     initialMessage:
-      'Halo! Saya asisten virtual prodi. Ada yang bisa saya bantu?',
+      'Halo! Saya asisten virtual program studi. Ada yang bisa saya bantu?',
     languageLabel: 'Bahasa',
     languageTitle: 'Ganti bahasa respons',
     disconnected: '⚠️ Gagal terhubung ke server. Silakan refresh halaman.',
@@ -477,7 +477,7 @@ export default function Chatbot() {
             </div>
             <div>
               <h1 className='text-lg font-bold tracking-tight' style={{ color: 'var(--foreground)' }}>
-                Asisten Prodi
+                Asisten Program Studi
               </h1>
               <p
                 className='text-xs font-medium opacity-70 flex items-center gap-1.5'

@@ -743,7 +743,7 @@ export default function KnowledgeView({ onBack }: KnowledgeViewProps) {
             Knowledge Base
           </h1>
           <p className='text-[#13484f] dark:text-gray-200 mt-1'>
-            Manajemen dan monitoring Basis Pengetahuan chatbot prodi.
+            Manajemen dan monitoring Basis Pengetahuan chatbot program studi.
           </p>
         </div>
         <button
