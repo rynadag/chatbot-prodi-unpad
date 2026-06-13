@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const knowledgeSchema = new mongoose.Schema({
   topic: { type: String, required: true },
@@ -17,4 +17,4 @@ const knowledgeSchema = new mongoose.Schema({
 
 const KnowledgeBase = mongoose.model('KnowledgeBase', knowledgeSchema, 'knowledgebase');
 
-module.exports = { KnowledgeBase };
+export { KnowledgeBase };

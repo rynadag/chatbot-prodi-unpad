@@ -9,6 +9,8 @@ import adminRoutes      from "./routes/admin.js";
 import chatRoutes       from "./routes/chat.js";
 import submissionRoutes from "./routes/Submission.js";
 import publicChatRoutes from "./routes/publicChat.js";
+import knowledgeRoutes  from "./routes/knowledge.js";
+import backupRoutes     from "./routes/backup.js";
 
 import { syncEmbeddingsToAtlas } from "./utils/ragHelper.js";
 
@@ -53,6 +55,8 @@ app.use("/api/admin",       adminRoutes);
 app.use("/api/chat",        chatLimiter, chatRoutes);
 app.use("/api/submission",  submissionRoutes);
 app.use("/api/public-chat", chatLimiter, publicChatRoutes);
+app.use("/api/knowledge",   knowledgeRoutes);
+app.use("/api/backup",      backupRoutes);
 
 // ── Utility endpoints ─────────────────────────────────────────
 app.get("/", (_req, res) =>

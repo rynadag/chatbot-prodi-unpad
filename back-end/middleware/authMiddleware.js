@@ -1,14 +1,25 @@
 import jwt  from "jsonwebtoken";
 import User from "../models/User.js";
 
-// Middleware: verifikasi JWT Bearer token
 export const protect = async (req, res, next) => {
     let token;
 
     if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        try {
-            token = req.headers.authorization.split(" ")[1];
+        token = req.headers.authorization.split(" ")[1];
+    } else if (req.headers.cookie) {
+        const cookies = Object.fromEntries(
+            req.headers.cookie.split(";").map(c => {
+                const parts = c.trim().split("=");
+                return [parts[0], parts.slice(1).join("=")];
+            })
+        );
+        if (cookies.token) {
+            token = cookies.token;
+        }
+    }
 
+    if (token) {
+        try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
             // Ambil data user dari DB (tanpa password)
@@ -23,9 +34,7 @@ export const protect = async (req, res, next) => {
             console.error("Token verification failed:", error.message);
             return res.status(401).json({ error: "Tidak terotorisasi, token tidak valid." });
         }
-    }
-
-    if (!token) {
+    } else {
         return res.status(401).json({ error: "Tidak terotorisasi, tidak ada token." });
     }
 };

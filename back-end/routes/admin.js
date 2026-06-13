@@ -180,8 +180,8 @@ router.post("/compile", async (req, res) => {
     }
 });
 
-// ── [GET] /api/admin/chats — Daftar semua sesi chat ───────────
-router.get("/chats", async (req, res) => {
+// ── [GET] /api/admin/chats / /chats/all — Daftar semua sesi chat ───
+router.get(["/chats", "/chats/all"], async (req, res) => {
     try {
         const sessions = await ChatSession.find({})
             .select("sessionId status createdAt updatedAt")
@@ -255,6 +255,12 @@ router.delete("/chats/:id", async (req, res) => {
         console.error("❌ [Admin DELETE /chats/:id] Error:", error);
         res.status(500).json({ error: "Gagal menghapus percakapan." });
     }
+});
+
+// ── [POST] /api/admin/logout ──────────────────────────────────
+router.post("/logout", async (req, res) => {
+    res.clearCookie("token");
+    res.json({ message: "✅ Logout berhasil!" });
 });
 
 export default router;

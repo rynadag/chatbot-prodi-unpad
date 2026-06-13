@@ -254,7 +254,7 @@ export default function Chatbot() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (sessionIdRef.current) headers['x-session-id'] = sessionIdRef.current;
 
-      const res = await fetch('http://localhost:3000/api/public-chat/stream', {
+      const res = await fetch('http://localhost:5000/api/public-chat/stream', {
         method: 'POST',
         headers,
         body: JSON.stringify({ question: userMsg }),
@@ -336,7 +336,7 @@ export default function Chatbot() {
     setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/admin/data', {});
+      const res = await fetch('http://localhost:5000/api/admin/data', {});
       if (!res.ok) throw new Error();
       const items = await res.json();
       const tags: string[] = items.map((i: { tag: string }) => i.tag);
