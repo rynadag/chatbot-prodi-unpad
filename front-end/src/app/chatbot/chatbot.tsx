@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Send,
   Loader2,
@@ -12,6 +13,7 @@ import {
   Moon,
   Languages,
   FileText,
+  LogIn,
 } from 'lucide-react';
 
 // --- LIBRARY MARKDOWN & HTML PARSER ---
@@ -524,6 +526,13 @@ export default function Chatbot() {
                 <Moon className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
               )}
             </button>
+            <Link
+              href="/login"
+              className="p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-all border border-transparent hover:border-border flex items-center justify-center"
+              title="Login Admin"
+            >
+              <LogIn className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
+            </Link>
           </div>
         </header>
 

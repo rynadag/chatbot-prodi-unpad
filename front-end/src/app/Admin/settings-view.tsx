@@ -1,19 +1,10 @@
 // Admin/settings-view.tsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
-  Lock, Loader2, UserCog, Eye, EyeOff, ShieldCheck, Info
+  Lock, Loader2, UserCog, Eye, EyeOff, ShieldCheck 
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface HealthInfo {
-  prodi?: string;
-  faculty?: string;
-  db?: string;
-  llm?: string;
-  embedding?: string;
-  uptime?: string;
-}
 
 interface PasswordInputProps {
   label: string;
@@ -25,19 +16,16 @@ interface PasswordInputProps {
 }
 
 export default function SettingsView() {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // State Toggles
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [health, setHealth] = useState<HealthInfo | null>(null);
 
-  useEffect(() => {
-    fetch('http://localhost:3000/health')
-      .then(r => r.json())
-      .then(setHealth)
-      .catch(() => {});
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,23 +39,22 @@ export default function SettingsView() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3000/api/admin/change-password', {
+      const res = await fetch('http://localhost:5000/api/admin/change-password', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ newPassword }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
 
       const json = await res.json();
       if (res.ok) {
         toast.success('Password berhasil diubah!');
+        // Reset form
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        toast.error(json.error || 'Gagal mengubah password');
+        toast.error(json.message || 'Gagal mengubah password');
       }
     } catch (error) { 
       console.error(error); 
@@ -82,7 +69,7 @@ export default function SettingsView() {
     label, value, onChange, show, setShow, placeholder 
   }: PasswordInputProps) => (
     <div className="mb-5 group">
-      <label className="block text-sm font-semibold text-[#13484f] mb-2 pl-1">
+      <label className="block text-sm font-semibold text-[#13484f] dark:text-gray-200 mb-2 pl-1">
         {label}
       </label>
       <div className="relative">
@@ -94,9 +81,9 @@ export default function SettingsView() {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full pl-10 pr-10 py-3 rounded-xl 
-                     bg-white/60 border border-white/50 
-                     text-gray-700 placeholder:text-gray-400
-                     focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/80
+                     bg-white/60 dark:bg-white/10 border border-white/50 dark:border-white/10 
+                     text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500
+                     focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/80 dark:focus:bg-white/20
                      outline-none transition-all duration-200 shadow-sm backdrop-blur-sm"
           placeholder={placeholder}
           required
@@ -114,27 +101,9 @@ export default function SettingsView() {
   );
 
   return (
-    <div className='p-4 sm:p-6 h-full flex flex-col items-center justify-center overflow-y-auto gap-4'>
+    <div className='p-4 sm:p-6 h-full flex flex-col items-center justify-center overflow-y-auto'>
       
-      {/* Info Prodi dari /health */}
-      {health && (
-        <div className='glass-card w-full max-w-lg p-5 flex items-start gap-3'>
-          <Info className='w-5 h-5 text-primary shrink-0 mt-0.5' />
-          <div className='text-sm'>
-            <p className='font-bold text-[#13484f] mb-1'>Info Konfigurasi Prodi</p>
-            <div className='text-gray-600 space-y-0.5'>
-              {health.prodi   && <p>🎓 <strong>Prodi:</strong> {health.prodi}</p>}
-              {health.faculty && <p>🏫 <strong>Fakultas:</strong> {health.faculty}</p>}
-              {health.db      && <p>🗄️ <strong>Database:</strong> {health.db}</p>}
-              {health.llm     && <p>🤖 <strong>LLM:</strong> {health.llm}</p>}
-              {health.embedding && <p>🔢 <strong>Embedding:</strong> {health.embedding}</p>}
-              {health.uptime  && <p>⏱️ <strong>Uptime:</strong> {health.uptime}</p>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Container ganti password */}
+      {/* Container Utama menggunakan class 'glass-card' dari globals.css */}
       <div className="glass-card w-full max-w-lg p-8 sm:p-10 relative overflow-hidden animate-in fade-in zoom-in duration-300">
         
         {/* Dekorasi Background Halus (Opsional) */}
@@ -142,20 +111,42 @@ export default function SettingsView() {
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-32 h-32 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <header className="text-center mb-8 relative z-10">
-          <div className="mx-auto w-20 h-20 mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/20 border border-white/50 flex items-center justify-center shadow-inner">
+          <div className="mx-auto w-20 h-20 mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/20 border border-white/50 dark:border-white/10 flex items-center justify-center shadow-inner">
             <UserCog className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-[#13484f] tracking-tight">
+          <h1 className="text-2xl font-bold text-[#13484f] dark:text-gray-200 tracking-tight">
             Pengaturan Akun
           </h1>
-          <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
             Amankan akun Anda dengan memperbarui kata sandi secara berkala.
           </p>
         </header>
 
         <form onSubmit={handleSubmit} className="relative z-10">
           
-          <div className="space-y-4 text-black">
+          <div className="bg-white/40 dark:bg-white/5 border border-white/50 dark:border-white/10 rounded-2xl p-6 shadow-sm mb-6">
+             <PasswordInput 
+              label="Password Lama" 
+              value={currentPassword} 
+              onChange={setCurrentPassword} 
+              show={showCurrent} 
+              setShow={setShowCurrent} 
+              placeholder="Masukkan password saat ini"
+            />
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-gray-300/50 dark:border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white/50 dark:bg-neutral-800 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 rounded-full backdrop-blur-sm">
+                Password Baru
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-gray-900 dark:text-gray-100">
             <PasswordInput 
               label="Password Baru" 
               value={newPassword} 
@@ -181,8 +172,8 @@ export default function SettingsView() {
             className="w-full mt-8 flex items-center justify-center gap-2 py-3.5 px-4 
                        bg-gradient-to-r from-primary to-accent 
                        hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.01] active:scale-[0.98]
-                       text-black rounded-xl font-semibold transition-all duration-200 
-                       disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none border border-white/20"
+                       text-white rounded-xl font-semibold transition-all duration-200 
+                       disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none border border-white/20 dark:border-white/10"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -195,6 +186,7 @@ export default function SettingsView() {
         </form>
       </div>
       
+  
     </div>
   );
 }
