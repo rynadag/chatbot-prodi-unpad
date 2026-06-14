@@ -84,7 +84,7 @@ app.use((err, _req, res, _next) => {
 
 // ── DB connection → start ─────────────────────────────────────
 mongoose
-    .connect(process.env.MONGO_URI, { ssl: true })
+    .connect(process.env.MONGO_URI, { ssl: true, dbName: process.env.MONGO_DB_NAME })
     .then(async () => {
         console.log("✅ Connected to MongoDB Atlas");
         console.log(`📚 Prodi: ${PRODI_NAME} ${FACULTY_NAME} ${UNIV_ABBREV}`);

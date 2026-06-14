@@ -132,7 +132,8 @@ export default function RagDetailView({ onBack, onSuccess }: RagDetailViewProps)
         });
         
         if (!backupRes.ok) {
-          console.warn("Upload berhasil, namun gagal membuat backup otomatis.");
+          const errText = await backupRes.text();
+          console.warn("Upload berhasil, namun gagal membuat backup otomatis. Status:", backupRes.status, "Response:", errText);
         }
       } catch (backupErr) {
         console.error("Gagal melakukan backup otomatis:", backupErr);
