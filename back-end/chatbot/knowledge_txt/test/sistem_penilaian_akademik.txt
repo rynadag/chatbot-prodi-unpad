@@ -1,0 +1,8 @@
+Tanya: Bagaimana sistem penilaian di MIM FEB Unpad?
+Jawab: Penilaian akhir (NA) adalah gabungan dari UTS, UAS, dan tugas. Nilai diberikan dalam Huruf Mutu (A, B, C, D, E) berdasarkan skor mentah 0-100.
+
+Tanya: Berapa standar nilai kelulusan mata kuliah?
+Jawab: Nilai A (Angka Mutu 4) untuk skor 80-100. Nilai B (Angka Mutu 3) untuk skor 68-80. Nilai C (Angka Mutu 2) untuk skor 56-68. Mahasiswa dinyatakan tidak lulus jika mendapat nilai di bawah C (skor < 56).
+
+Tanya: Apa syarat kelulusan yudisium 'Pujian' (Cumlaude)?
+Jawab: Syarat Pujian: IPK 3,76 - 4,00, masa studi tepat waktu (maksimal 5 semester), tidak ada nilai C, dan telah mempublikasikan 1 artikel ilmiah (accepted) di jurnal internasional bereputasi atau nasional terakreditasi.

@@ -1,0 +1,11 @@
+Tanya: Berapa total SKS yang harus ditempuh di Magister Ilmu Manajemen?
+Jawab: Total SKS yang harus ditempuh adalah 36 SKS.
+
+Tanya: Bagaimana pembagian mata kuliah per semester?
+Jawab: Semester 1: 14 SKS (Mata Kuliah Wajib). Semester 2: 14 SKS (Mata Kuliah Wajib, Pilihan, dan Konsentrasi). Semester 3: 8 SKS (Seminar Usulan Penelitian dan Tesis).
+
+Tanya: Apa saja mata kuliah wajib di Semester 1?
+Jawab: Mata kuliah semester 1 meliputi: Filsafat Ilmu, Manajemen Pemasaran Madya, Manajemen SDM Madya, Manajemen Keuangan Madya, Manajemen Operasi Madya, Manajemen Strategik, Statistik Multivariate & Ekonometrika, dan Metodologi Penelitian.
+
+Tanya: Apa mata kuliah matrikulasi bagi mahasiswa yang tidak sebidang?
+Jawab: Mahasiswa pra-pasca (tidak sebidang) wajib mengambil matrikulasi (0 SKS) yang terdiri dari: Ekonomi Manajerial, Manajemen dan Bisnis, Matematika Bisnis, dan Statistika Bisnis.
