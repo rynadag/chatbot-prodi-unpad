@@ -2,6 +2,7 @@ import express from "express";
 import { protect, isAdmin } from "../middleware/authMiddleware.js";
 import { KnowledgeBase } from "../models/knowledgeModel.js";
 import Category from "../models/Category.js";
+import KnowledgeSource from "../models/KnowledgeSource.js";
 
 const router = express.Router();
 
@@ -114,6 +115,20 @@ router.post('/', async (req, res) => {
     });
     await newData.save();
 
+    // Sync to KnowledgeSource for chatbot retrieval
+    await KnowledgeSource.findOneAndUpdate(
+      { tag: topic.trim() },
+      {
+        tag: topic.trim(),
+        content_text: content.trim(),
+        embedding: [],
+        embedding_provider: null,
+        embedding_model: null,
+        content_hash: null
+      },
+      { upsert: true, new: true }
+    );
+
     await updateCategoryStats(newData.category, 1, 1);
     await refreshCategorySummary();
 
@@ -138,6 +153,24 @@ router.put('/:id/status', async (req, res) => {
       { status: newStatus, is_sync: false },
       { new: true }
     );
+
+    // Sync to KnowledgeSource for chatbot retrieval
+    if (newStatus === 'ACTIVE') {
+      await KnowledgeSource.findOneAndUpdate(
+        { tag: knowledgeItem.topic },
+        {
+          tag: knowledgeItem.topic,
+          content_text: knowledgeItem.content,
+          embedding: [],
+          embedding_provider: null,
+          embedding_model: null,
+          content_hash: null
+        },
+        { upsert: true }
+      );
+    } else {
+      await KnowledgeSource.deleteOne({ tag: knowledgeItem.topic });
+    }
 
     if (newStatus === 'ACTIVE') {
       await updateCategoryStats(knowledgeItem.category, 0, 1);
@@ -174,6 +207,25 @@ router.put('/:id', async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // Sync to KnowledgeSource for chatbot retrieval
+    if (updatedData.status === 'ACTIVE') {
+      if (oldData.topic !== topic.trim()) {
+        await KnowledgeSource.deleteOne({ tag: oldData.topic });
+      }
+      await KnowledgeSource.findOneAndUpdate(
+        { tag: topic.trim() },
+        {
+          tag: topic.trim(),
+          content_text: content.trim(),
+          embedding: [],
+          embedding_provider: null,
+          embedding_model: null,
+          content_hash: null
+        },
+        { upsert: true }
+      );
+    }
+
     if (oldCategory !== category) {
       await updateCategoryStats(oldCategory, -1, isActive ? -1 : 0);
       await updateCategoryStats(category, 1, isActive ? 1 : 0);
@@ -204,6 +256,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     await KnowledgeBase.findByIdAndDelete(id);
+    await KnowledgeSource.deleteOne({ tag: item.topic });
     await updateCategoryStats(item.category, -1, 0);
     await refreshCategorySummary();
 

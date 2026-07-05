@@ -10,6 +10,7 @@
 import mongoose      from "mongoose";
 import crypto        from "crypto";
 import KnowledgeSource from "../models/KnowledgeSource.js";
+import { KnowledgeBase } from "../models/knowledgeModel.js";
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 
 // ── Singleton state ──────────────────────────────────────────
@@ -79,6 +80,41 @@ async function getEmbedder() {
 export async function syncEmbeddingsToAtlas() {
     const t0 = Date.now();
     console.log("🔄 Mengecek sinkronisasi embedding...");
+
+    // Sync all active KnowledgeBase items to KnowledgeSource first
+    try {
+        const activeBases = await KnowledgeBase.find({ status: "ACTIVE" }).lean();
+        const baseTopics = activeBases.map(b => b.topic.trim());
+
+        // Hapus items di KnowledgeSource yang tidak ada di activeBases
+        await KnowledgeSource.deleteMany({ tag: { $nin: baseTopics } });
+
+        // Upsert activeBases ke KnowledgeSource
+        const ops = activeBases.map(b => ({
+            updateOne: {
+                filter: { tag: b.topic.trim() },
+                update: {
+                    $set: {
+                        content_text: b.content.trim(),
+                    },
+                    $setOnInsert: {
+                        embedding: [],
+                        embedding_provider: null,
+                        embedding_model: null,
+                        content_hash: null,
+                    }
+                },
+                upsert: true
+            }
+        }));
+
+        if (ops.length > 0) {
+            await KnowledgeSource.bulkWrite(ops);
+            console.log(`✓ Berhasil mensinkronkan ${ops.length} data dari KnowledgeBase ke KnowledgeSource.`);
+        }
+    } catch (err) {
+        console.error("⚠️ Gagal mensinkronkan KnowledgeBase ke KnowledgeSource:", err.message);
+    }
 
     const config = getEmbeddingConfig();
     const allSources = await KnowledgeSource.find({})

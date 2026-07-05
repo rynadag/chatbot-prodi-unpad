@@ -585,7 +585,7 @@ async function retrieveContext(question) {
         console.log(`  [${i}] ${c.tag} score=${c.relevance.toFixed(3)} "${c.content.slice(0, 110)}"`)
     );
 
-    return { context: formatContext(chunks), sources: uniqueSources(chunks, config.sourceLimit) };
+    return { context: formatContext(chunks), sources: [] };
 }
 
 // ── Prompt & LLM helpers ──────────────────────────────────────
@@ -604,8 +604,7 @@ function cleanAnswer(raw) {
 }
 
 function formatSources(sources) {
-    if (!sources?.length) return "";
-    return `\n\nSumber: ${sources.map(s => s.tag).join(", ")}`;
+    return "";
 }
 
 function appendSources(answer, sources) {
