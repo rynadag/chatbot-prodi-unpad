@@ -41,7 +41,7 @@ export const protect = async (req, res, next) => {
 
 // Middleware: cek role admin
 export const isAdmin = (req, res, next) => {
-    if (req.user && req.user.role === "admin") {
+    if (req.user && (req.user.role === "admin" || req.user.role === "SUPER_ADMIN")) {
         next();
     } else {
         res.status(403).json({ error: "Tidak terotorisasi. Hanya admin yang diizinkan." });

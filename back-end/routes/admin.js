@@ -263,4 +263,83 @@ router.post("/logout", async (req, res) => {
     res.json({ message: "✅ Logout berhasil!" });
 });
 
+
+// ── [GET] /api/admin/list ──────────────────────────────────────
+router.get("/list", async (req, res) => {
+    try {
+        if (req.user.role !== "SUPER_ADMIN") {
+            return res.status(403).json({ error: "Hanya SUPER_ADMIN yang bisa melihat daftar admin." });
+        }
+        // User.js uses email instead of username, so we map it for the frontend
+        import("../models/User.js").then(async ({ default: UserModel }) => {
+            const users = await UserModel.find({}, "-password").lean();
+            const admins = users.map(u => ({
+                _id: u._id,
+                username: u.email,
+                role: u.role
+            }));
+            res.json({ data: admins });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Gagal mengambil daftar admin." });
+    }
+});
+
+// ── [POST] /api/admin/create-account ───────────────────────────
+router.post("/create-account", async (req, res) => {
+    try {
+        if (req.user.role !== "SUPER_ADMIN") {
+            return res.status(403).json({ error: "Hanya SUPER_ADMIN yang bisa membuat akun." });
+        }
+        const { username, password, role } = req.body;
+        import("../models/User.js").then(async ({ default: UserModel }) => {
+            const email = username || req.body.email; // Map username back to email
+            const newUser = new UserModel({ email, password, role: role || "admin" });
+            await newUser.save();
+            res.json({ message: "Admin berhasil dibuat!" });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Gagal membuat admin." });
+    }
+});
+
+// ── [PUT] /api/admin/:id/password ──────────────────────────────
+router.put("/:id/password", async (req, res) => {
+    try {
+        if (req.user.role !== "SUPER_ADMIN") {
+            return res.status(403).json({ error: "Hanya SUPER_ADMIN yang bisa mengubah password." });
+        }
+        const { newPassword } = req.body;
+        import("../models/User.js").then(async ({ default: UserModel }) => {
+            const user = await UserModel.findById(req.params.id);
+            if (!user) return res.status(404).json({ error: "User tidak ditemukan." });
+            
+            user.password = newPassword;
+            await user.save();
+            res.json({ message: "Password berhasil diubah!" });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Gagal mengubah password." });
+    }
+});
+
+// ── [DELETE] /api/admin/:id ────────────────────────────────────
+router.delete("/:id", async (req, res) => {
+    try {
+        if (req.user.role !== "SUPER_ADMIN") {
+            return res.status(403).json({ error: "Hanya SUPER_ADMIN yang bisa menghapus admin." });
+        }
+        if (req.user.userId === req.params.id) {
+            return res.status(400).json({ error: "Tidak dapat menghapus diri sendiri." });
+        }
+        import("../models/User.js").then(async ({ default: UserModel }) => {
+            await UserModel.findByIdAndDelete(req.params.id);
+            res.json({ message: "Admin berhasil dihapus!" });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Gagal menghapus admin." });
+    }
+});
+
+
 export default router;
