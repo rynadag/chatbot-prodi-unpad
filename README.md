@@ -26,12 +26,12 @@ Sistem ini dibangun dengan arsitektur *microservices* berkinerja tinggi yang mem
 ### 1. Antarmuka Publik & Autentikasi
 | Chatbot Publik | Panel Login Admin |
 | :---: | :---: |
-| ![Chatbot UI](./docs/screenshots/chatbot.png) <br> *[Tolong Screenshot: Halaman interaksi chat publik dengan AI secara langsung]* | ![Login UI](./docs/screenshots/login-admin.png) <br> *[Tolong Screenshot: Halaman Login Admin dengan desain glassmorphism]* |
+| ![Chatbot UI](./docs/screenshots/chatbot.png) <br> *Halaman interaksi chat publik dengan AI secara langsung* | ![Login UI](./docs/screenshots/login-admin.png) <br> *Halaman Login Admin dengan desain glassmorphism* |
 
 ### 2. Panel Kontrol Administrator (Dashboard)
 | Manajemen Pengetahuan (Knowledge Base) | Manajemen Admin |
 | :---: | :---: |
-| ![Knowledge Base](./docs/screenshots/knowledge-base.png) <br> *[Tolong Screenshot: Tabel kelola seluruh data pengetahuan]* | ![Manage Admin](./docs/screenshots/manage-admin.png) <br> *[Tolong Screenshot: Halaman daftar dan pembuatan Admin baru]* |
+| ![Knowledge Base](./docs/screenshots/knowledge-base.png) <br> *Tabel kelola seluruh data pengetahuan* | ![Manage Admin](./docs/screenshots/manage-admin.png) <br> *Halaman daftar dan pembuatan Admin baru* |
 
 ---
 
@@ -158,7 +158,7 @@ Jika Anda menggunakan WordPress sebagai website utama institusi, kami menyediaka
 
 | Proses Upload Plugin | Aktivasi Plugin |
 | :---: | :---: |
-| ![Upload Plugin](./docs/screenshots/wp-upload.png) <br> *[Tolong Screenshot: Halaman Upload Plugin WordPress menunjuk ke plugin.zip]* | ![Aktivasi Plugin](./docs/screenshots/wp-activate.png) <br> *[Tolong Screenshot: Daftar plugin WordPress dengan tombol Activate/Deactivate]* |
+| ![Upload Plugin](./docs/screenshots/wp-upload.png) <br> *Halaman Upload Plugin WordPress menunjuk ke plugin.zip* | ![Aktivasi Plugin](./docs/screenshots/wp-activate.png) <br> *Daftar plugin WordPress dengan tombol Activate/Deactivate* |
 
 ### B. Konfigurasi Plugin (Penting!)
 1. Setelah plugin aktif, perhatikan sidebar kiri WordPress Anda. Akan muncul menu navigasi baru bernama **Chatbot**.
@@ -169,7 +169,7 @@ Jika Anda menggunakan WordPress sebagai website utama institusi, kami menyediaka
 
 | Pengaturan URL Chatbot di WP | Tampilan Widget di Halaman Web Publik |
 | :---: | :---: |
-| ![WP Settings](./docs/screenshots/wp-settings.png) <br> *[Tolong Screenshot: Halaman form Pengaturan Chatbot di WP Admin yang berisi input URL]* | ![Widget UI](./docs/screenshots/wp-widget.png) <br> *[Tolong Screenshot: Gelembung/Bubble icon chatbot di pojok kanan bawah halaman web utama WordPress]* |
+| ![WP Settings](./docs/screenshots/wp-settings.png) <br> *Halaman form Pengaturan Chatbot di WP Admin yang berisi input URL* | ![Widget UI](./docs/screenshots/wp-widget.png) <br> *Gelembung/Bubble icon chatbot di pojok kanan bawah halaman web utama WordPress* |
 
 ---
 
@@ -185,7 +185,7 @@ Halaman login dilindungi oleh sistem token JWT yang aman.
 
 | Halaman Login |
 | :---: |
-| ![Halaman Login](./docs/screenshots/login-admin-full.png) <br> *[Tolong Screenshot: Halaman form login (/Admin) dengan tampilan utuh]* |
+| ![Halaman Login](./docs/screenshots/login-admin-full.png) <br> *Halaman form login (/Admin) dengan tampilan utuh* |
 
 ### B. Cara Membuat Akun Admin Baru (Manage Admin)
 Untuk menambah anggota tim yang bisa mengelola chatbot:
@@ -198,7 +198,7 @@ Untuk menambah anggota tim yang bisa mengelola chatbot:
 
 | Halaman Manage Admin | Form Tambah Admin |
 | :---: | :---: |
-| ![Daftar Admin](./docs/screenshots/admin-list.png) <br> *[Tolong Screenshot: Tabel daftar akun admin]* | ![Tambah Admin](./docs/screenshots/admin-add.png) <br> *[Tolong Screenshot: Modal/Popup penambahan admin baru]* |
+| ![Daftar Admin](./docs/screenshots/admin-list.png) <br> *Tabel daftar akun admin* | ![Tambah Admin](./docs/screenshots/admin-add.png) <br> *Modal/Popup penambahan admin baru* |
 
 ### C. Kelola Basis Pengetahuan (Knowledge Base)
 Menu ini adalah "otak" dari chatbot. Apa pun yang tertulis di sini adalah apa yang akan dijawab oleh AI.
@@ -209,7 +209,7 @@ Menu ini adalah "otak" dari chatbot. Apa pun yang tertulis di sini adalah apa ya
 
 | Halaman Knowledge Base | Form Input Pengetahuan |
 | :---: | :---: |
-| ![Tabel Pengetahuan](./docs/screenshots/knowledge-base.png) <br> *[Tolong Screenshot: Halaman tabel utama Knowledge Base]* | ![Form Pengetahuan](./docs/screenshots/knowledge-form.png) <br> *[Tolong Screenshot: Modal form untuk mengetik Judul, Kategori, Isi]* |
+| ![Tabel Pengetahuan](./docs/screenshots/knowledge-base.png) <br> *Halaman tabel utama Knowledge Base* | ![Form Pengetahuan](./docs/screenshots/knowledge-form.png) <br> *Modal form untuk mengetik Judul, Kategori, Isi* |
 
 ### D. Upload Dokumen Cerdas (File PDF/TXT)
 Jika Anda memiliki dokumen pedoman panjang (PDF/TXT) dan malas mengetiknya satu per satu:
@@ -220,7 +220,7 @@ Jika Anda memiliki dokumen pedoman panjang (PDF/TXT) dan malas mengetiknya satu 
 
 | Fitur Upload Dokumen | Tombol Update RAG |
 | :---: | :---: |
-| ![Upload PDF](./docs/screenshots/upload-pdf.png) <br> *[Tolong Screenshot: Jendela dialog Upload Dokumen PDF]* | ![Update RAG](./docs/screenshots/update-rag.png) <br> *[Tolong Screenshot: Soroti/Tunjuk tombol "Update RAG" yang sedang berputar/memproses]* |
+| ![Upload PDF](./docs/screenshots/upload-pdf.png) <br> *Jendela dialog Upload Dokumen PDF* | ![Update RAG](./docs/screenshots/update-rag.png) <br> *Soroti/Tunjuk tombol "Update RAG" yang sedang berputar/memproses* |
 
 ### E. Manajemen Backup & Restore
 Setiap kali Anda mengunggah dokumen baru, sistem akan **otomatis melakukan backup** untuk berjaga-jaga. Anda juga dapat mengelolanya secara mandiri:
@@ -232,7 +232,7 @@ Setiap kali Anda mengunggah dokumen baru, sistem akan **otomatis melakukan backu
 
 | Riwayat Backup |
 | :---: |
-| ![Halaman Backup](./docs/screenshots/backup-history.png) <br> *[Tolong Screenshot: Tabel Backup History dengan tombol Restore dan Download]* |
+| ![Halaman Backup](./docs/screenshots/backup-history.png) <br> *Tabel Backup History dengan tombol Restore dan Download* |
 
 ### F. Pemantauan Langsung (Live Monitor)
 Ingin tahu siapa saja yang sedang berinteraksi dengan Chatbot?
@@ -241,7 +241,7 @@ Ingin tahu siapa saja yang sedang berinteraksi dengan Chatbot?
 
 | Halaman Live Monitor |
 | :---: |
-| ![Live Monitor](./docs/screenshots/live-monitor.png) <br> *[Tolong Screenshot: Halaman Live Monitor yang menunjukkan aktivitas grafik/koneksi aktif]* |
+| ![Live Monitor](./docs/screenshots/live-monitor.png) <br> *Halaman Live Monitor yang menunjukkan aktivitas grafik/koneksi aktif* |
 
 ---
 
